@@ -74,7 +74,7 @@ class LaunchApplicationAction(object):
                 'variant': application.get('variant', None),
                 'actionIdentifier': self.identifier,
                 'applicationIdentifier': application['identifier'],
-                'description': application['description']
+                'description': unicode(application['description'])
                 }
             )
 
@@ -269,30 +269,32 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
         if os.path.exists(json_file):
             with open(json_file, "r") as f:
                 data = json.load(f)
-                if data:
-                    for entry in data.values():
-                        version = entry.get('version')
-                        if not version:
-                            continue
-                        
-                        locations = entry.get('location')
-                        if not locations:
-                            continue
-                        
-                        # Use the first one
-                        unity_location = locations[0]
-                        applications.append( 
-                            {
-                            'description': 'Launch Unity {} ({})'.format(version, unity_location),
-                            'icon': 'https://cdn4.iconfinder.com/data/icons/various-icons-2/476/Unity.png',
-                            'identifier': 'unity_{}'.format(version),
-                            'label': 'Unity',
-                            'launchArguments': None,
-                            'path': unity_location,
-                            'variant': version,
-                            'version': LooseVersion(version),
-                            }
-                        )
+                if not data or type(data) <> dict:
+                    return
+
+                for entry in data.values():
+                    version = entry.get('version')
+                    if not version:
+                        continue
+                    
+                    locations = entry.get('location')
+                    if not locations:
+                        continue
+                    
+                    # Use the first one
+                    unity_location = locations[0]
+                    applications.append( 
+                        {
+                        'description': 'Launch Unity {} ({})'.format(version, unity_location),
+                        'icon': 'https://cdn4.iconfinder.com/data/icons/various-icons-2/476/Unity.png',
+                        'identifier': 'unity_{}'.format(version),
+                        'label': 'Unity',
+                        'launchArguments': None,
+                        'path': unity_location,
+                        'variant': version,
+                        'version': LooseVersion(version),
+                        }
+                    )
         
     def _discover_secondary_installations(self, applications):
         json_file = None
@@ -310,7 +312,17 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                     # Feed the file system search algorithm with the 
                     # discovered root. We expect the Unity version to be
                     # its own folder, e.g. D:\my_path\2018.3.12f1\Editor\Unity.exe
-                    expression = data.split(os.sep) + ['2.+', 'Editor', 'Unity.exe']
+                    #
+                    # The first part of the expression must match exactly to an 
+                    # existing entry on the filesystem
+                    expression = data.split(os.sep)
+                    if not expression or len(expression) < 1:
+                        return
+
+                    if not os.path.exists(expression[0]):
+                        return
+                    
+                    expression.extend(['2.+', 'Editor', 'Unity.exe'])
                     found_applications = self._searchFilesystem(
                         expression = expression,
                         versionExpression = r'(?P<version>\d[\d.a-z]*?)[^\d]*$',
