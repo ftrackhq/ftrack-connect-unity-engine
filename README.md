@@ -1,29 +1,9 @@
-# README #
+# Installation
 
-This README would normally document whatever steps are necessary to get your application up and running.
+1. Run `python setup.py build_plugin`
+2. Copy the resulting `build/ftrack-connect-unity-engine-x.y.z` directory to the 
+standard location, as described in https://help.ftrack.com/connect/getting-started-with-connect/installing-and-using-connect 
+under *Customizing ftrack Connect*
+3. Restart ftrack-connect
 
-### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
