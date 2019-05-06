@@ -159,7 +159,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                 self._discover_from_registry(all_applications)
                 self._discover_located_editors(all_applications)
                 self._discover_secondary_installations(all_applications)
-                
+                self._discover_standard_paths(all_applications)
                             
         # Remove:
         #   * paths that do not exist 
@@ -296,6 +296,29 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                         }
                     )
         
+    def _discover_from_location(self, expression_to_search, applications):
+        """
+        Will discover installations under the given expression
+        expression is a list of string tokens
+            e.g. [ 'C:', 'Program Files', 'Unity' ]
+        """
+        expression_to_search.extend(['2.+', 'Editor', 'Unity.exe'])
+        found_applications = self._searchFilesystem(
+            expression = expression_to_search,
+            versionExpression = r'(?P<version>\d[\d.a-z]*?)[^\d]*$',
+            label='Unity',
+            applicationIdentifier='unity_{version}',
+            icon='https://cdn4.iconfinder.com/data/icons/various-icons-2/476/Unity.png',
+            variant='{version}'
+        )
+        
+        # Set a description on found applications
+        for application in found_applications:
+            application['description'] = 'Launch Unity {} ({})'.format(application['variant'], application['path']),
+        
+        applications.extend(found_applications)
+        
+
     def _discover_secondary_installations(self, applications):
         json_file = None
         if sys.platform == 'win32':
@@ -322,22 +345,20 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                     if not os.path.exists(expression[0]):
                         return
                     
-                    expression.extend(['2.+', 'Editor', 'Unity.exe'])
-                    found_applications = self._searchFilesystem(
-                        expression = expression,
-                        versionExpression = r'(?P<version>\d[\d.a-z]*?)[^\d]*$',
-                        label='Unity',
-                        applicationIdentifier='unity_{version}',
-                        icon='https://cdn4.iconfinder.com/data/icons/various-icons-2/476/Unity.png',
-                        variant='{version}'
-                    )
-                    
-                    # Set a description on found applications
-                    for application in found_applications:
-                        application['description'] = 'Launch Unity {} ({})'.format(application['variant'], application['path']),
+                    self._discover_from_location(expression, applications)
 
-                    
-                    applications.extend(found_applications)
+    def _discover_standard_paths(self, applications):
+        """
+        Searches standard locations
+        """
+        expressions_to_search = None
+        if sys.platform == 'win32':
+            expressions_to_search = [ ['C:', 'Program Files', 'Unity', 'Hub', 'Editor'] ] 
+
+        for expression in expressions_to_search:
+            if os.path.exists(os.path.sep.join(expression)):
+                self._discover_from_location(expression, applications)
+
 
 class ApplicationLauncher(ftrack_connect.application.ApplicationLauncher):
     def __init__(self, application_store):
