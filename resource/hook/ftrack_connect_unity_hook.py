@@ -1,11 +1,13 @@
 # :coding: utf-8
 # :copyright: Copyright (c) 2019 ftrack
 
+# ftrack
 from distutils.version import LooseVersion
 
 import ftrack
 import ftrack_connect.application
 
+# misc
 import getpass
 import json
 import logging
@@ -13,11 +15,11 @@ import os
 import pprint
 import sys
 
-cwd = os.path.dirname(__file__)
-sources_path = os.path.abspath(os.path.join(cwd, '..', 'dependencies'))
+_cwd = os.path.dirname(__file__)
+_sources_path = os.path.abspath(os.path.join(_cwd, '..', 'dependencies'))
 
-if sources_path not in sys.path:
-    sys.path.append(sources_path)
+if _sources_path not in sys.path:
+    sys.path.append(_sources_path)
 
 import ftrack_connect_unity
 
@@ -31,8 +33,18 @@ class LaunchApplicationAction(object):
         self.launcher = launcher
 
     def is_valid_selection(self, selection):
-        # For now Unity should always be visible, no matter what the selection 
-        # is set to
+        """
+        Unity needs a task to operate
+        """
+        if (len(selection) != 1 or selection[0]['entityType'] != 'task'):
+            return False
+
+        entity = selection[0]
+        task = ftrack.Task(entity['entityId'])
+
+        if task.getObjectType() != 'Task':
+            return False
+
         return True
 
     def register(self):
@@ -368,6 +380,29 @@ class ApplicationLauncher(ftrack_connect.application.ApplicationLauncher):
         # Make sure to call super to retrieve original environment
         # which contains the selection and ftrack API.
         environment = super(ApplicationLauncher, self)._getApplicationEnvironment(application, context)
+        
+        # We need the dependencies in sys.path
+        ftrack_connect.application.appendPath(
+           _sources_path,
+            'PYTHONPATH',
+            environment
+        )
+        
+        # Make sure the plug-in is in sys.path
+        ftrack_connect.application.appendPath(
+            os.path.join(_sources_path, 'ftrack_connect_unity'),
+            'PYTHONPATH',
+            environment
+        )
+
+        environment['FTRACK_UNITY_RESOURCE_PATH'] = os.path.abspath(os.path.join(_cwd, '..', 'resources'))
+        
+        entity = context['selection'][0]
+        task = ftrack.Task(entity['entityId'])
+        taskParent = task.getParent()
+
+        environment['FTRACK_TASKID'] = task.getId()
+        environment['FTRACK_SHOTID'] = task.get('parent_id')
 
         return environment
 

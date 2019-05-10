@@ -1,0 +1,9 @@
+{
+"name": "com.integrations.ftrack",
+"displayName" : "ftrack",
+"version" : "0.0.1-preview",
+"dependencies" : { "com.unity.scripting.python" : "1.2.0-preview" },
+"unity": "2018.3",
+"description" : "An integration of ftrack for Unity.",
+"keywords" : [ "ftrack" ]
+}

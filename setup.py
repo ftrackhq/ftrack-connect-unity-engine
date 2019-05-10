@@ -19,18 +19,15 @@ ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 SOURCE_PATH = os.path.join(ROOT_PATH, 'source')
 README_PATH = os.path.join(ROOT_PATH, 'README.md')
 BUILD_PATH = os.path.join(ROOT_PATH, 'build')
-HOOK_PATH = os.path.join(ROOT_PATH, 'resource', 'hook')
+RESOURCE_PATH = os.path.join(ROOT_PATH, 'resource')
+SCRIPTS_PATH = os.path.join(RESOURCE_PATH, 'scripts')
+HOOK_PATH = os.path.join(RESOURCE_PATH, 'hook')
 
 STAGING_PATH = os.path.join(BUILD_PATH, PLUGIN_NAME)
 
 # Parse package version
-with open(os.path.join(
-    SOURCE_PATH, 'ftrack_connect_unity', '_version.py')
-) as _version_file:
-    VERSION = re.match(
-        r'.*__version__ = \'(.*?)\'', _version_file.read(), re.DOTALL
-    ).group(1)
-
+with open(os.path.join(SOURCE_PATH, 'ftrack_connect_unity', '_version.py')) as _version_file:
+    VERSION = re.match(r'.*__version__ = \'(.*?)\'', _version_file.read(), re.DOTALL).group(1)
 
 # Update staging path with the plugin version
 STAGING_PATH = STAGING_PATH.format(VERSION)
@@ -58,6 +55,12 @@ class BuildPlugin(Command):
         shutil.copytree(
             HOOK_PATH,
             os.path.join(STAGING_PATH, 'hook')
+        )
+        
+        # Copy script files
+        shutil.copytree(
+            SCRIPTS_PATH,
+            os.path.join(STAGING_PATH, 'resources', 'scripts')
         )
 
         # Install local dependencies
@@ -108,4 +111,7 @@ setup(
     cmdclass={
         'build_plugin': BuildPlugin,
     },
+    install_requires=[
+        'appdirs'
+    ]
 )
