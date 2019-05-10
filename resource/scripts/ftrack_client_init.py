@@ -8,80 +8,24 @@ QApplication where ftrack lives
 
 
 # Unity
-import unity_client
 from unity_client_service import UnityClientService
 
 # ftrack
 import ftrack
-import ftrack_connect.config
 from connector.unity_connector import Connector
-
-# misc
-import sys
-import logging
-import os
+from connector.unity_connector import Logger
 
 # globals
 _connector = Connector()
 _ftrack_is_initialized = False
 _the_application = None
-_ftrack_logger = None
 
-
-class Logger(object):
-    """
-    This class provides logging interface similar to the ftrack logger.
-    Messages are printed to the client log, but also to the ftrack logger.
-    
-    We do this because the Unity Python package does not use the logging module
-    yet. If it was, then it would use its own logger and handlers. Handlers 
-    would be replaced by the ftrack handlers on init, which is fine.
-    
-    When everything is in place, we will be able to get rid of this class and 
-    simply use our own logger directly (_ftrack_logger).
-    
-    Bottom-line, we want to write to both the logging module and the 
-    unity_client module, until the unity_client module implements logging 
-    properly. then we can get rid of this class.
-    """
-    @classmethod
-    def debug(cls, msg):
-        cls._do_log(msg, 'debug')
-
-    @classmethod
-    def error(cls, msg):
-        cls._do_log(msg, 'error')
-    
-    @classmethod
-    def info(cls, msg):
-        cls._do_log(msg, 'info')
-
-    @classmethod
-    def warning(cls, msg):
-        cls._do_log(msg, 'warning')
-
-    @classmethod
-    def _do_log(cls, msg, level):
-        client_msg = '[ftrack_client-{}] {}'.format(level, msg)
-        unity_client.log(client_msg)
-        
-        if _ftrack_logger:
-            logger_method = getattr(_ftrack_logger, level)
-            logger_method(msg)
-    
 def on_init_client(client):
     """
     Registers the custom rpyc service and the idle callback
     """
-    # Install the ftrack logging handlers
-    ftrack_connect.config.configure_logging('ftrack_connect_unity', level='DEBUG')
-
-    # Create our logger
-    global _ftrack_logger
-    _ftrack_logger = logging.getLogger('ftrack_client')
+    Logger.debug('In on_init_client')
     
-    _ftrack_logger.debug('In on_init_client')
-
     client.register_idle_callback(on_idle)
     client.register_service(ftrackClientService)
     
@@ -135,6 +79,13 @@ class ftrackClientService(UnityClientService):
             if dialog_name == 'Info':
                 from ftrack_connect.ui.widget.info import FtrackInfoDialog
                 ftrack_dialog = FtrackInfoDialog(connector=_connector)
+            elif dialog_name == 'Import asset':
+                from ftrack_connect.ui.widget.import_asset import FtrackImportAssetDialog
+                ftrack_dialog = FtrackImportAssetDialog(connector=_connector)
+                
+                # Make the dialog bigger from its hardcoded values
+                ftrack_dialog.setMinimumWidth(800)
+                ftrack_dialog.setMinimumHeight(600)
                 
             if ftrack_dialog:
                 # Since ftrack is running in a separate process, its dialogs 

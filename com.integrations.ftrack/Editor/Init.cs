@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2019 ftrack
 
+#define DEBUG_FTRACK 
+
 using UnityEngine;
 using UnityEditor.Scripting.Python;
 
@@ -30,5 +32,21 @@ namespace UnityEditor.Integrations.ftrack
         {
             PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'Info'");
         }
+
+        [MenuItem("ftrack/Import asset")]
+        private static void ShowImportAsset()
+        {
+            PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'Import asset'");
+        }
+
+        #if DEBUG_FTRACK
+        [MenuItem("ftrack/Debug/Re-initialize")]
+        private static void ReInit()
+        {
+            // Stop the server and client
+            PythonRunner.StopServer(true);
+            InitFtrack();
+        }
+#endif // DEBUG_FTRACK
     }
 }

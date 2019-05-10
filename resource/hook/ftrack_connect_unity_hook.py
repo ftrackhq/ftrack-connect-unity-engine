@@ -226,7 +226,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
         return valid_applications
     
     def _discover_from_registry(self, applications):
-        if sys.platform <> 'win32':
+        if sys.platform != 'win32':
             # Discovering through the registry is specific to the Windows 
             # platform
             return 
@@ -281,7 +281,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
         if os.path.exists(json_file):
             with open(json_file, "r") as f:
                 data = json.load(f)
-                if not data or type(data) <> dict:
+                if not data or type(data) != dict:
                     return
 
                 for entry in data.values():
