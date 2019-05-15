@@ -204,23 +204,22 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
         # Sort the list
         valid_applications = sorted(valid_applications, key=lambda application: application['variant'])
         
-        # Try to find the preferred version and make it the first version of the
-        # list
-        # %APPDATA%\UnityHub\defaultEditor.json
-        json_file = os.path.join(os.environ.get('APPDATA'), 'UnityHub', 'defaultEditor.json')
-        if os.path.exists(json_file):
-            with open(json_file, "r") as f:
-                preferred_version = json.load(f)
-
-                # We are expecting a single string which is the version number 
-                # for the preferred editor
-                if type(preferred_version) == unicode:
-                    for application in valid_applications:
-                        if application['variant'] == preferred_version:
-                            valid_applications.remove(application)
-                            valid_applications.insert(0, application)
-        
-                
+        if sys.platform == 'win32':
+            # Try to find the preferred version and make it the first version of the
+            # list
+            # %APPDATA%\UnityHub\defaultEditor.json
+            json_file = os.path.join(os.environ.get('APPDATA'), 'UnityHub', 'defaultEditor.json')
+            if os.path.exists(json_file):
+                with open(json_file, "r") as f:
+                    preferred_version = json.load(f)
+    
+                    # We are expecting a single string which is the version number 
+                    # for the preferred editor
+                    if type(preferred_version) == unicode:
+                        for application in valid_applications:
+                            if application['variant'] == preferred_version:
+                                valid_applications.remove(application)
+                                valid_applications.insert(0, application)
 
         self.logger.debug('Discovered Unity applications:\n{0}'.format(pprint.pformat(valid_applications)))
         return valid_applications

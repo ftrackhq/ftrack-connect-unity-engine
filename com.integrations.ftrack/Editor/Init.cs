@@ -39,6 +39,12 @@ namespace UnityEditor.Integrations.ftrack
             PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'Import asset'");
         }
 
+        [MenuItem("ftrack/Asset manager")]
+        private static void ShowAssetManager()
+        {
+            PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'Asset manager'");
+        }
+
         #if DEBUG_FTRACK
         [MenuItem("ftrack/Debug/Re-initialize")]
         private static void ReInit()

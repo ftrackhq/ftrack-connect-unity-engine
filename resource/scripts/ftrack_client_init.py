@@ -19,6 +19,7 @@ from connector.unity_connector import Logger
 _connector = Connector()
 _ftrack_is_initialized = False
 _the_application = None
+_dialogs = []
 
 def on_init_client(client):
     """
@@ -79,14 +80,20 @@ class ftrackClientService(UnityClientService):
             if dialog_name == 'Info':
                 from ftrack_connect.ui.widget.info import FtrackInfoDialog
                 ftrack_dialog = FtrackInfoDialog(connector=_connector)
+                ftrack_dialog.setWindowTitle('Info')
             elif dialog_name == 'Import asset':
                 from ftrack_connect.ui.widget.import_asset import FtrackImportAssetDialog
                 ftrack_dialog = FtrackImportAssetDialog(connector=_connector)
+                ftrack_dialog.setWindowTitle('ImportAsset')
                 
                 # Make the dialog bigger from its hardcoded values
                 ftrack_dialog.setMinimumWidth(800)
                 ftrack_dialog.setMinimumHeight(600)
-                
+            elif dialog_name == 'Asset manager':
+                from ftrack_connect.ui.widget.asset_manager import FtrackAssetManagerDialog
+                ftrack_dialog = FtrackAssetManagerDialog(connector=_connector)
+                ftrack_dialog.setWindowTitle('AssetManager')
+
             if ftrack_dialog:
                 # Since ftrack is running in a separate process, its dialogs 
                 # tend to pop up behind Unity. This is why we set the 
@@ -94,6 +101,9 @@ class ftrackClientService(UnityClientService):
                 ftrack_dialog.setWindowFlags(ftrack_dialog.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
                 
                 ftrack_dialog.show()
+
+                # Keep a reference on the created dialogs so they do not vanish                
+                _dialogs.append(ftrack_dialog)
     
         except Exception as e:
             import traceback
