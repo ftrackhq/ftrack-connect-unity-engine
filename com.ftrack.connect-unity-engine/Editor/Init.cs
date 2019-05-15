@@ -5,7 +5,7 @@
 using UnityEngine;
 using UnityEditor.Scripting.Python;
 
-namespace UnityEditor.Integrations.ftrack
+namespace UnityEditor.ftrack.connect_unity_engine
 {
     public static class Init
     {
