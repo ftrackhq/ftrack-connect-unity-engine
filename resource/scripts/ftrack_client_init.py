@@ -95,11 +95,6 @@ class ftrackClientService(UnityClientService):
                 ftrack_dialog.setWindowTitle('AssetManager')
 
             if ftrack_dialog:
-                # Since ftrack is running in a separate process, its dialogs 
-                # tend to pop up behind Unity. This is why we set the 
-                # stay-on-top flag.
-                ftrack_dialog.setWindowFlags(ftrack_dialog.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-                
                 ftrack_dialog.show()
 
                 # Keep a reference on the created dialogs so they do not vanish                
