@@ -12,8 +12,8 @@ from unity_client_service import UnityClientService
 
 # ftrack
 import ftrack
-from connector.unity_connector import Connector
-from connector.unity_connector import Logger
+from connector.unity_connector import Connector, Logger, UnityEngine
+from ui import unity_menus
 
 # globals
 _connector = Connector()
@@ -59,8 +59,12 @@ class ftrackClientService(UnityClientService):
             # Registration
             _connector.registerAssets()
             
-            # We are done
+            # We are now initialized
             _ftrack_is_initialized = True
+            
+            # Create the menus
+            unity_menus.generate()
+
         except Exception as e:
             import traceback
             Logger.error('Got an exception: {}'.format(e))
@@ -93,6 +97,13 @@ class ftrackClientService(UnityClientService):
                 from ftrack_connect.ui.widget.asset_manager import FtrackAssetManagerDialog
                 ftrack_dialog = FtrackAssetManagerDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('AssetManager')
+            else:
+                error_string = 'Invalid dialog name: "{}"'.format(dialog_name) 
+                Logger.error(error_string)
+                
+                # Also log in the console
+                UnityEngine().Debug.LogError(error_string)
+                
 
             if ftrack_dialog:
                 ftrack_dialog.show()

@@ -2,8 +2,10 @@
 
 #define DEBUG_FTRACK 
 
+using UnityEditor;
 using UnityEngine;
 using UnityEditor.Scripting.Python;
+using System.IO;
 
 namespace UnityEditor.ftrack.connect_unity_engine
 {
@@ -12,6 +14,9 @@ namespace UnityEditor.ftrack.connect_unity_engine
         [InitializeOnLoadMethod]
         private static void InitFtrack()
         {
+            // Register for clean-up on exit
+            EditorApplication.quitting += OnQuit;
+
             string resourcePath = System.Environment.GetEnvironmentVariable("FTRACK_UNITY_RESOURCE_PATH");
             if (null == resourcePath)
             {
@@ -21,28 +26,26 @@ namespace UnityEditor.ftrack.connect_unity_engine
 
             // ftrack runs in the client process. This Python script is 
             // responsible to control ftrack (open dialogs, init, …)
-            string initModule = System.IO.Path.Combine(resourcePath, "scripts", "ftrack_client_init.py");
+            string initModule = Path.Combine(resourcePath, "scripts", "ftrack_client_init.py");
 
             PythonRunner.StartServer(initModule);
             PythonRunner.CallServiceOnClient("'ftrack_load_and_init'");
         }
 
-        [MenuItem("ftrack/Info")]
-        private static void ShowInfoDialog()
+        static void OnQuit()
         {
-            PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'Info'");
-        }
+            EditorApplication.quitting -= OnQuit;
 
-        [MenuItem("ftrack/Import asset")]
-        private static void ShowImportAsset()
-        {
-            PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'Import asset'");
-        }
-
-        [MenuItem("ftrack/Asset manager")]
-        private static void ShowAssetManager()
-        {
-            PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'Asset manager'");
+            // Remove the Assets/ftrack directory
+            string ftrackAssetPath = UnityEngine.Application.dataPath;
+            ftrackAssetPath = Path.Combine(ftrackAssetPath, "ftrack");
+            try
+            {
+                Directory.Delete(ftrackAssetPath, true);
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
         }
 
         #if DEBUG_FTRACK
