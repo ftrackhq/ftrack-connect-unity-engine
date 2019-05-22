@@ -1,5 +1,5 @@
 {
-    "name": "Unity.Integrations.ftrack",
+    "name": "ftrack.connect-unity-engine",
     "references": [
         "Unity.Scripting.Python.Editor"
     ],
