@@ -10,22 +10,27 @@ from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 import json
 import os
 
-class GeometryAsset(FTAssetType):
+class GenericAsset(FTAssetType):
     def __init__(self):
-        super(GeometryAsset, self).__init__()
+        super(GenericAsset, self).__init__()
 
     def importAsset(self, iAObj=None):
-        Logger.debug('In GeometryAsset.importAsset')
+        Logger.debug('In GenericAsset.importAsset')
 
         if not self._validate_ftrack_asset(iAObj):
-            return
+            raise Exception('Invalid asset. See console for details')
                 
         # Ask for a destination directory (into the Unity project)
         dst_directory = self._select_directory()
         
         # Import the asset
-        if not self._import_ftrack_asset(iAObj, dst_directory):
-            return
+        model_importer = self._import_ftrack_asset(iAObj, dst_directory) 
+        if not model_importer:
+            raise Exception('Could not import asset. See console for details')
+
+        # Apply the right settings to the importer
+        self._apply_settings_on_model_importer(model_importer)
+        model_importer.SaveAndReimport()
 
         
     def changeVersion(self, iAObj=None, applicationObject=None):
@@ -128,14 +133,18 @@ class GeometryAsset(FTAssetType):
         return True
 
     def _import_ftrack_asset(self, iAObj, dst_directory):
+        '''
+        Attemps to import the give asset .fbx file
+        Returns the model importer if successful, otherwise returns None
+        '''
         # The destination directory must exist
-        if not os.path.isdir(dst_directory):
+        if not dst_directory or not os.path.isdir(dst_directory):
             error_string = 'ftrack cannot import into the chosen directory "{}"'.format(dst_directory)
             Logger.error(error_string)
             
             # Also log to the Unity console
             UnityEngine().Debug.LogError(error_string)
-            return False
+            return None
         
         # The destination directory must be under Assets/
         assets_path = UnityEngine().Application.dataPath
@@ -146,7 +155,7 @@ class GeometryAsset(FTAssetType):
             
             # Also log to the Unity console
             UnityEngine().Debug.LogError(error_string)
-            return False
+            return None
         
         # Copy the file
         import shutil
@@ -158,7 +167,7 @@ class GeometryAsset(FTAssetType):
 
             # Also log to the Unity console
             UnityEngine().Debug.LogError(error_string)
-            return False
+            return None
 
         # Refresh the asset database
         UnityEditor().AssetDatabase.Refresh()
@@ -167,18 +176,18 @@ class GeometryAsset(FTAssetType):
         # The Asset Importer expects a path using forward slashes and starting 
         # with 'Assets/'
         (_, src_filename) = os.path.split(iAObj.filePath)
-        asset_importer_path = os.path.join(dst_directory, src_filename)
-        asset_importer_path = asset_importer_path.replace('\\','/')
-        asset_importer_path = asset_importer_path[asset_importer_path.find('/Assets')+1:]
+        model_importer_path = os.path.join(dst_directory, src_filename)
+        model_importer_path = model_importer_path.replace('\\','/')
+        model_importer_path = model_importer_path[model_importer_path.find('/Assets')+1:]
         
-        asset_importer = UnityEditor().AssetImporter.GetAtPath(asset_importer_path)
-        if not asset_importer:
-            error_string = 'Could not find the asset importer for {}'.format(asset_importer_path)
+        model_importer = UnityEditor().AssetImporter.GetAtPath(model_importer_path)
+        if not model_importer:
+            error_string = 'Could not find the asset importer for {}'.format(model_importer_path)
             Logger.error(error_string)
 
             # Also log to the Unity console
             UnityEngine().Debug.LogError(error_string)
-            return False
+            return None
         
         json_data = {
             'assetName'                    : iAObj.assetName,
@@ -191,18 +200,46 @@ class GeometryAsset(FTAssetType):
             'ftrack_connect_unity_version' : ftrack_connect_unity.__version__
         }
 
-        asset_importer.userData = json.dumps(json_data)
-        asset_importer.SaveAndReimport()
-
+        model_importer.userData = json.dumps(json_data)
+        model_importer.SaveAndReimport()
+        
         debug_string = 'Imported {} ({} -> {})'.format(src_filename, iAObj.filePath, dst_directory)
         Logger.debug(debug_string)
         
         # Also log to the Unity console
         UnityEngine().Debug.Log(debug_string)
 
-        return True
+        return model_importer
 
+    def _apply_settings_on_model_importer(self, model_importer):
+        # Disable Animation and Rigging
+        model_importer.animationType = UnityEditor().ModelImporterAnimationType.None
+        model_importer.importAnimation = False
+        
+        # Disable Materials
+        model_importer.importMaterials = False
+        
+
+class AnimationAsset(GenericAsset):
+    def _apply_settings_on_model_importer(self, model_importer):
+        # Call the base class
+        super(AnimationAsset, self)._apply_settings_on_model_importer(model_importer)
+        
+        # Enable animation
+        model_importer.animationType = UnityEditor().ModelImporterAnimationType.Generic
+        model_importer.importAnimation = True
+
+class RigAsset(GenericAsset):
+    def _apply_settings_on_model_importer(self, model_importer):
+        # Call the base class
+        super(RigAsset, self)._apply_settings_on_model_importer(model_importer)
+        
+        # Enable Rig
+        model_importer.animationType = UnityEditor().ModelImporterAnimationType.Generic
+        model_importer.importAnimation = False
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
-    assetHandler.registerAssetType(name='geo', cls=GeometryAsset)
+    assetHandler.registerAssetType(name="anim", cls=AnimationAsset)
+    assetHandler.registerAssetType(name='geo', cls=GenericAsset)
+    assetHandler.registerAssetType(name='rig', cls=RigAsset)
