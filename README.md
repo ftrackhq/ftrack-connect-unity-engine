@@ -55,7 +55,7 @@ packages to be installed: the Python package and the ftrack package:
 Package Manager
 1. Locate the `+` sign and click on it, then select `Add package from disk...`
 1. Browse to the location where the Python package is located 
-(`com.unity.scripting.python-1.3.0-preview`)
+(`com.unity.scripting.python-1.3.1-preview`)
 1. Select the package.json file
 1. Do the same for the ftrack package, found at the same location where 
 this README.md file resides, under `com.ftrack.connect-unity-engine`
