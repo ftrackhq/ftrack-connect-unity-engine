@@ -403,6 +403,20 @@ class ApplicationLauncher(ftrack_connect.application.ApplicationLauncher):
         environment['FTRACK_TASKID'] = task.getId()
         environment['FTRACK_SHOTID'] = task.get('parent_id')
 
+        ftrack_installation_path = os.path.dirname(sys.executable)
+
+        environment = ftrack_connect.application.appendPath(
+            ftrack_installation_path,
+            'QT_PLUGIN_PATH',
+            environment
+        )
+
+        environment = ftrack_connect.application.appendPath(
+            os.path.join(ftrack_installation_path, "library.zip"),
+            'PYTHONPATH',
+            environment
+        )
+
         return environment
 
 def register(registry, **kw):

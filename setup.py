@@ -112,6 +112,7 @@ setup(
         'build_plugin': BuildPlugin,
     },
     install_requires=[
-        'appdirs'
-    ]
+        'appdirs',
+        'rpyc',
+    ],
 )
