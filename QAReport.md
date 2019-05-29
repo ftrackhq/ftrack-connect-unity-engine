@@ -1,5 +1,5 @@
 # Quality Report - ftrack for Unity
-# May 15, 2019
+# May 23, 2019
 
 ## Version tested: ftrack-connect-unity-engine-0.1.0
 
@@ -8,16 +8,14 @@
 
 ## Test strategy
 
-* [Ran through test plan](https://docs.google.com/document/d/1YG5ekU_T8tHnHRtGjfO1pF_GWftJAYNuOnfieDtYTik/edit?usp=sharing)
-* Waiting on functional coverage testing.
+* [Ran through test plan](https://docs.google.com/document/d/1YG5ekU_T8tHnHRtGjfO1pF_GWftJAYNuOnfieDtYTik/edit?usp=sharing).
+* Eventual coverage testing pending as it's not a priority.
 
 ## Package Status
 
-* Good bootstrapping times, not too janky.
+ Feature-complete! Still needs a little UX work but the basic workflow can be done without issues.
 
-* *Info* Button: Window instantly closes on import and breaks integration.
-* *Tasks* Button: Not yet implemented.
-* *Import* Button: Functional, aside from the *browse* window that appears behind the main panel and locks out the integration.
-* *Asset Manager* Button: Not yet implemented.
-
-Incredible progress, looking forward to seeing all features implemented.
+- Unity launch from ftrack connect: Fully functional - but all instances of the Hub need to be closed before launch.
+- *Info* Button: Fully functional.
+- *Import* Button: Fully functional.
+- *Asset Manager*: Fully functional.

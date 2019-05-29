@@ -9,6 +9,7 @@ from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 # misc
 import json
 import os
+import shutil
 
 class GenericAsset(FTAssetType):
     def __init__(self):
@@ -158,11 +159,17 @@ class GenericAsset(FTAssetType):
             return None
         
         # Copy the file
-        import shutil
+        src_file = iAObj.filePath
+        (_, extension) = os.path.splitext(src_file)
+
+        # Use the asset name as the destination file name
+        dst_file = os.path.join(dst_directory, iAObj.assetName)
+        dst_file += extension
+        dst_file = os.path.normpath(dst_file)
         try:
-            shutil.copy2(iAObj.filePath, dst_directory)
+            shutil.copy2(src_file, dst_file)
         except IOError as e:
-            error_string = 'ftrack could not copy "{}" into "{}": {}'.format(iAObj.filePath, dst_directory, e)
+            error_string = 'ftrack could not copy "{}" into "{}": {}'.format(src_file, dst_file, e)
             Logger.error(error_string)
 
             # Also log to the Unity console
@@ -175,8 +182,7 @@ class GenericAsset(FTAssetType):
         # Add the ftrack metadata to the model importer
         # The Asset Importer expects a path using forward slashes and starting 
         # with 'Assets/'
-        (_, src_filename) = os.path.split(iAObj.filePath)
-        model_importer_path = os.path.join(dst_directory, src_filename)
+        model_importer_path = dst_file
         model_importer_path = model_importer_path.replace('\\','/')
         model_importer_path = model_importer_path[model_importer_path.find('/Assets')+1:]
         
@@ -196,14 +202,14 @@ class GenericAsset(FTAssetType):
             'assetVersionId'               : iAObj.assetVersionId,
             'componentName'                : iAObj.componentName,
             'componentId'                  : iAObj.componentId,
-            'filePath'                     : iAObj.filePath,
+            'filePath'                     : src_file,
             'ftrack_connect_unity_version' : ftrack_connect_unity.__version__
         }
 
         model_importer.userData = json.dumps(json_data)
         model_importer.SaveAndReimport()
         
-        debug_string = 'Imported {} ({} -> {})'.format(src_filename, iAObj.filePath, dst_directory)
+        debug_string = 'Imported {} ({} -> {})'.format(iAObj.assetName, src_file, dst_file)
         Logger.debug(debug_string)
         
         # Also log to the Unity console
