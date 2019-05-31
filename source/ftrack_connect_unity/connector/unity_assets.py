@@ -222,8 +222,8 @@ class GenericAsset(FTAssetType):
         model_importer.animationType = UnityEditor().ModelImporterAnimationType.None
         model_importer.importAnimation = False
         
-        # Disable Materials
-        model_importer.importMaterials = False
+        # # Disable Materials
+        # model_importer.importMaterials = False
         
 
 class AnimationAsset(GenericAsset):
