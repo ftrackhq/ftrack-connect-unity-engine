@@ -30,7 +30,7 @@ class GenericAsset(FTAssetType):
             raise Exception('Could not import asset. See console for details')
 
         # Apply the right settings to the importer
-        self._apply_settings_on_model_importer(model_importer)
+        self._apply_settings_on_model_importer(iAObj, model_importer)
         model_importer.SaveAndReimport()
 
         
@@ -217,35 +217,45 @@ class GenericAsset(FTAssetType):
 
         return model_importer
 
-    def _apply_settings_on_model_importer(self, model_importer):
+    def _apply_settings_on_model_importer(self, iAObj, model_importer):
         # Disable Animation and Rigging
-        model_importer.animationType = UnityEditor().ModelImporterAnimationType.None
-        model_importer.importAnimation = False
+        anim_type = iAObj.options['unityAnimType']
+        anim_type_switcher = {
+            "None" : UnityEditor().ModelImporterAnimationType.None,
+            "Legacy" : UnityEditor().ModelImporterAnimationType.Legacy,
+            "Generic" : UnityEditor().ModelImporterAnimationType.Generic,
+            "Human" : UnityEditor().ModelImporterAnimationType.Human
+        }
+        model_importer.animationType = anim_type_switcher.get(anim_type, UnityEditor().ModelImporterAnimationType.None)
+        model_importer.importAnimation = iAObj.options['unityImportAnim']
         
         # Disable Materials
-        model_importer.importMaterials = False
-        
+        model_importer.importMaterials = iAObj.options['unityImportAnim']
 
-class AnimationAsset(GenericAsset):
-    def _apply_settings_on_model_importer(self, model_importer):
-        # Call the base class
-        super(AnimationAsset, self)._apply_settings_on_model_importer(model_importer)
-        
-        # Enable animation
-        model_importer.animationType = UnityEditor().ModelImporterAnimationType.Generic
-        model_importer.importAnimation = True
+    @staticmethod
+    def importOptions():
+        '''Return import options for the component'''
 
-class RigAsset(GenericAsset):
-    def _apply_settings_on_model_importer(self, model_importer):
-        # Call the base class
-        super(RigAsset, self)._apply_settings_on_model_importer(model_importer)
-        
-        # Enable Rig
-        model_importer.animationType = UnityEditor().ModelImporterAnimationType.Generic
-        model_importer.importAnimation = False
+        xml = '''
+        <tab name="Options">
+            <row name="Import Animation" accepts="unity">
+                <option type="checkbox" name="unityImportAnim" value="True"/>
+            </row>
+            <row name="Import Materials" accepts="unity">
+                <option type="checkbox" name="unityImportMaterials" value="True"/>
+            </row>
+            <row name="Animation Type:" accepts="unity">
+                <option type="combo" name="unityAnimType">
+                    <optionitem name="Generic"/>
+                    <optionitem name="None"/>
+                    <optionitem name="Legacy"/>
+                    <optionitem name="Human"/>
+                </option>
+            </row>
+        </tab>
+        '''
+        return xml
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
-    assetHandler.registerAssetType(name="anim", cls=AnimationAsset)
     assetHandler.registerAssetType(name='geo', cls=GenericAsset)
-    assetHandler.registerAssetType(name='rig', cls=RigAsset)

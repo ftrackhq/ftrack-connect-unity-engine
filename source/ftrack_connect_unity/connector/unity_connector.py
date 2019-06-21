@@ -208,6 +208,11 @@ class Connector(maincon.Connector):
         UnityEditor().AssetDatabase.DeleteAsset(asset_path)
 
     @staticmethod
+    def getConnectorName():
+        '''Return the connector name'''
+        return 'unity'
+        
+    @staticmethod
     def _ftrack_asset_from_guid(guid):
         '''
         Helper method to go from one Unity asset guid to a tuple of 
