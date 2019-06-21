@@ -2,7 +2,10 @@
 "name": "com.ftrack.connect-unity-engine",
 "displayName" : "ftrack",
 "version" : "0.1.0-preview",
-"dependencies" : { "com.unity.scripting.python" : "1.3.1-preview" },
+  "dependencies": {
+    "com.unity.scripting.python": "1.3.1-preview",
+    "com.unity.recorder": "2.0.1-preview.1"
+  },
 "unity": "2018.3",
 "description" : "An integration of ftrack for Unity.",
 "keywords" : [ "ftrack" ]

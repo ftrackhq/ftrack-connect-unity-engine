@@ -12,8 +12,9 @@ from unity_client_service import UnityClientService
 
 # ftrack
 import ftrack
-from connector.unity_connector import Connector, Logger, UnityEngine
+from connector.unity_connector import Connector, Logger, UnityEngine, UnityEditor
 from ui import unity_menus
+import os
 
 # globals
 _connector = Connector()
@@ -64,12 +65,27 @@ class ftrackClientService(UnityClientService):
             
             # Create the menus
             unity_menus.generate()
+            
+            self.ftrack_set_recorder_start_end_frame()
 
         except Exception as e:
             import traceback
             Logger.error('Got an exception: {}'.format(e))
             Logger.error('Stack trace:\n\n{}'.format(traceback.format_exc()))
+    
+    def ftrack_set_recorder_start_end_frame(self):
+        unity_editor = UnityEditor()
+        if not unity_editor.Recorder:
+            return
         
+        frame_start = os.environ.get("FTRACK_FS")
+        frame_end = os.environ.get("FTRACK_FE")
+        
+        recorder_editor_window = unity_editor.EditorWindow.GetWindow(unity_editor.Recorder.RecorderWindow, False, "Recorder", False)
+        
+        controller_settings = unity_editor.ftrack.recorder.Recorder.GetRecorderControllerSettings(recorder_editor_window)
+        controller_settings.SetRecordModeToFrameInterval(int(frame_start), int(frame_end))
+    
     def ftrack_show_dialog(self, dialog_name):
         try:
             Logger.debug('ftrackClientService.ftrack_show_dialog: dialog_name = {}'.format(dialog_name))
