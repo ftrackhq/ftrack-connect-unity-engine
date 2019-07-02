@@ -73,6 +73,30 @@ class GenericAsset(FTAssetType):
         '''
         Logger.debug('In Connector.publishAsset. Not implemented yet')
 
+    @staticmethod
+    def importOptions():
+        '''Return import options for the component'''
+
+        xml = '''
+        <tab name="Options">
+            <row name="Import Animation" accepts="unity">
+                <option type="checkbox" name="unityImportAnim" value="True"/>
+            </row>
+            <row name="Import Materials" accepts="unity">
+                <option type="checkbox" name="unityImportMaterials" value="True"/>
+            </row>
+            <row name="Animation Type:" accepts="unity">
+                <option type="combo" name="unityAnimType">
+                    <optionitem name="Generic"/>
+                    <optionitem name="None"/>
+                    <optionitem name="Legacy"/>
+                    <optionitem name="Human"/>
+                </option>
+            </row>
+        </tab>
+        '''
+        return xml
+
     def _select_directory(self):
         """
         Displays a system dialog for the user to pick a destination folder
@@ -218,7 +242,6 @@ class GenericAsset(FTAssetType):
         return model_importer
 
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
-        # Disable Animation and Rigging
         anim_type = iAObj.options['unityAnimType']
         anim_type_switcher = {
             "None" : UnityEditor().ModelImporterAnimationType.None,
@@ -230,31 +253,7 @@ class GenericAsset(FTAssetType):
         model_importer.importAnimation = iAObj.options['unityImportAnim']
         
         # Disable Materials
-        model_importer.importMaterials = iAObj.options['unityImportAnim']
-
-    @staticmethod
-    def importOptions():
-        '''Return import options for the component'''
-
-        xml = '''
-        <tab name="Options">
-            <row name="Import Animation" accepts="unity">
-                <option type="checkbox" name="unityImportAnim" value="True"/>
-            </row>
-            <row name="Import Materials" accepts="unity">
-                <option type="checkbox" name="unityImportMaterials" value="True"/>
-            </row>
-            <row name="Animation Type:" accepts="unity">
-                <option type="combo" name="unityAnimType">
-                    <optionitem name="Generic"/>
-                    <optionitem name="None"/>
-                    <optionitem name="Legacy"/>
-                    <optionitem name="Human"/>
-                </option>
-            </row>
-        </tab>
-        '''
-        return xml
+        model_importer.importMaterials = iAObj.options['unityImportMaterials']
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
