@@ -69,33 +69,24 @@ class ftrackClientService(UnityClientService):
             unity_menus.generate()
             
             # Synchronize the recorder to the shot associated with the context (if relevant)
-            self.ftrack_set_recorder_start_end_frame()
+            self._set_recorder_frame_range()
 
         except Exception as e:
             import traceback
             Logger.error('Got an exception: {}'.format(e))
             Logger.error('Stack trace:\n\n{}'.format(traceback.format_exc()))
     
-    def ftrack_set_recorder_start_end_frame(self):
-        # We need the recorder to be present
-        unity_editor = UnityEditor()
-        if not unity_editor.Recorder:
-            return
-        
-        recorder_editor_window = unity_editor.EditorWindow.GetWindow(unity_editor.Recorder.RecorderWindow, False, "Recorder", False)
-        if not recorder_editor_window:
-            return
-
+    def _set_recorder_frame_range(self):
         # The hook must provide us with start/end values
         frame_start = os.environ.get("FTRACK_FS")
         frame_end = os.environ.get("FTRACK_FE")
         
         if not frame_start or not frame_end:
+            # Invalid values
             return
-
-        # Get the settings through reflection        
-        controller_settings = unity_editor.ftrack.recorder.Recorder.GetRecorderControllerSettings(recorder_editor_window)
-        controller_settings.SetRecordModeToFrameInterval(int(frame_start), int(frame_end))
+        
+        # Set the frame range        
+        UnityEditor().ftrack.Recorder.SetFrameRange(int(frame_start), int(frame_end))
     
     def ftrack_show_dialog(self, dialog_name):
         try:
