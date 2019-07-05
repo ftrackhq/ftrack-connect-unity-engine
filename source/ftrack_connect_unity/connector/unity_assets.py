@@ -73,30 +73,14 @@ class GenericAsset(FTAssetType):
         '''
         Logger.debug('In Connector.publishAsset. Not implemented yet')
 
-    @staticmethod
-    def importOptions():
-        '''Return import options for the component'''
-
-        xml = '''
-        <tab name="Options">
-            <row name="Import Animation" accepts="unity">
-                <option type="checkbox" name="unityImportAnim" value="True"/>
-            </row>
-            <row name="Import Materials" accepts="unity">
-                <option type="checkbox" name="unityImportMaterials" value="True"/>
-            </row>
-            <row name="Animation Type:" accepts="unity">
-                <option type="combo" name="unityAnimType">
-                    <optionitem name="Generic"/>
-                    <optionitem name="None"/>
-                    <optionitem name="Legacy"/>
-                    <optionitem name="Human"/>
-                </option>
-            </row>
-        </tab>
+    @classmethod
+    def importOptions(cls):
         '''
-        return xml
-
+        Return import options for the component
+        '''
+        # No option in the generic class
+        return ''
+        
     def _select_directory(self):
         """
         Displays a system dialog for the user to pick a destination folder
@@ -242,6 +226,62 @@ class GenericAsset(FTAssetType):
         return model_importer
 
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
+        # Generic Assets do not modify the import options
+        pass
+    
+class GeoAsset(GenericAsset):
+    @classmethod
+    def importOptions(cls):
+        return '''
+        <tab name="Options">
+            <row name="Import Materials" accepts="unity">
+                <option type="checkbox" name="unityImportMaterials" value="True"/>
+            </row>
+        </tab>
+        '''
+
+    def _apply_settings_on_model_importer(self, iAObj, model_importer):
+        model_importer.importMaterials = iAObj.options['unityImportMaterials']
+
+        # Force importing without animation. Users can always change this 
+        # directly in the ModelImporter Inspector panel 
+        model_importer.importAnimation = False
+
+class AnimAsset(GenericAsset):
+    @classmethod
+    def importOptions(cls):
+        return '''
+        <tab name="Options">
+            <row name="Import Animation" accepts="unity">
+                <option type="checkbox" name="unityImportAnim" value="True"/>
+            </row>
+        </tab>
+        '''
+
+    def _apply_settings_on_model_importer(self, iAObj, model_importer):
+        model_importer.importAnimation = iAObj.options['unityImportAnim']
+        
+        # Force importing without materials. Users can always change this 
+        # directly in the ModelImporter Inspector panel 
+        model_importer.importMaterials = False
+
+class RigAsset(GenericAsset):
+    @classmethod
+    def importOptions(cls):
+        return '''
+        <tab name="Options">
+            <row name="Animation Type:" accepts="unity">
+                <option type="combo" name="unityAnimType">
+                    <optionitem name="Generic"/>
+                    <optionitem name="None"/>
+                    <optionitem name="Legacy"/>
+                    <optionitem name="Human"/>
+                </option>
+            </row>
+        </tab>
+        '''
+
+    def _apply_settings_on_model_importer(self, iAObj, model_importer):
         anim_type = iAObj.options['unityAnimType']
         anim_type_switcher = {
             "None" : UnityEditor().ModelImporterAnimationType.None,
@@ -249,12 +289,19 @@ class GenericAsset(FTAssetType):
             "Generic" : UnityEditor().ModelImporterAnimationType.Generic,
             "Human" : UnityEditor().ModelImporterAnimationType.Human
         }
+
         model_importer.animationType = anim_type_switcher.get(anim_type, UnityEditor().ModelImporterAnimationType.None)
-        model_importer.importAnimation = iAObj.options['unityImportAnim']
         
-        # Disable Materials
-        model_importer.importMaterials = iAObj.options['unityImportMaterials']
+        # Force importing without animation. Users can always change this 
+        # directly in the ModelImporter Inspector panel 
+        model_importer.importAnimation = False
+
+        # Force importing without materials. Users can always change this 
+        # directly in the ModelImporter Inspector panel 
+        model_importer.importMaterials = False
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
-    assetHandler.registerAssetType(name='geo', cls=GenericAsset)
+    assetHandler.registerAssetType(name='anim', cls=AnimAsset)
+    assetHandler.registerAssetType(name='geo', cls=GeoAsset)
+    assetHandler.registerAssetType(name='rig', cls=RigAsset)
