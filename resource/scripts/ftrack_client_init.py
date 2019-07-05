@@ -89,7 +89,7 @@ class ftrackClientService(UnityClientService):
         shot = ftrack.Shot(id = shot_id)
         fps = shot.get('fps')
         
-        # Set the frame range        
+        # Sync the values        
         UnityEditor().ftrack.Recorder.ApplySettings(int(frame_start), int(frame_end), fps)
     
     def ftrack_show_dialog(self, dialog_name):
