@@ -24,13 +24,11 @@ class GenericAsset(FTAssetType):
             raise Exception('Invalid asset. See console for details')
                 
         # Ask for a destination directory (into the Unity project)
-        dst_directory = os.path.abspath(self._get_asset_relative_import_path(iAObj))
+        dst_directory = os.path.abspath(self._get_asset_import_path(iAObj))
         
         # Make sure the directory exists
         if not dst_directory:
             dst_directory = self._select_directory()
-        if dst_directory and not os.path.isdir(dst_directory):
-            os.makedirs(dst_directory)
             
         # Import the asset
         model_importer = self._import_ftrack_asset(iAObj, dst_directory) 
@@ -89,7 +87,7 @@ class GenericAsset(FTAssetType):
         # No option in the generic class
         return ''
     
-    def _get_asset_relative_import_path(self, iAObj):
+    def _get_asset_import_path(self, iAObj):
         ftrack_asset_version = ftrack.AssetVersion(iAObj.assetVersionId)
         task = ftrack_asset_version.getTask()
         task_links = ftrack_api.Session().query(
@@ -170,8 +168,8 @@ class GenericAsset(FTAssetType):
         Attemps to import the give asset .fbx file
         Returns the model importer if successful, otherwise returns None
         '''
-        # The destination directory must exist
-        if not dst_directory or not os.path.isdir(dst_directory):
+        # The destination directory must be set
+        if not dst_directory:
             error_string = 'ftrack cannot import into the chosen directory "{}"'.format(dst_directory)
             Logger.error(error_string)
             
@@ -189,6 +187,10 @@ class GenericAsset(FTAssetType):
             # Also log to the Unity console
             UnityEngine().Debug.LogError(error_string)
             return None
+        
+        # Make sure the directory exists
+        if not os.path.isdir(dst_directory):
+            os.makedirs(dst_directory)
         
         # Copy the file
         src_file = iAObj.filePath
