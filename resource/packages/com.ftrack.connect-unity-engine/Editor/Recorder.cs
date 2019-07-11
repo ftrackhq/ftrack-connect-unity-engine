@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using UnityEditor.Recorder;
+using System.Collections;
 
 namespace UnityEditor.ftrack
 {
@@ -7,24 +8,35 @@ namespace UnityEditor.ftrack
     {
         public static void ApplySettings(int start, int end, float fps)
         {
-            var window = EditorWindow.GetWindow<RecorderWindow>(false, "Recorder", false);
+            var window = EditorWindow.GetWindow<RecorderWindow>(
+                false,"Recorder", false
+            );
             if (!window)
                 return;
 
             // Get the settings through reflection        
-            var field = window.GetType().GetField("m_ControllerSettings", BindingFlags.NonPublic | BindingFlags.Instance);
+            var field = window.GetType().GetField("m_ControllerSettings",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
             var settings = field.GetValue(window) as RecorderControllerSettings;
             settings.SetRecordModeToFrameInterval(start, end);
             
             // Get the dictionary of frame rate options to float values
-            var frameRateDictField = settings.GetType().GetField("s_FPSToValue", BindingFlags.NonPublic | BindingFlags.Static);
-            var frameRateDict = frameRateDictField.GetValue(null) as System.Collections.IDictionary;
+            var frameRateDictField = settings.GetType().GetField("s_FPSToValue",
+                BindingFlags.NonPublic | BindingFlags.Static);
 
-            // Get the frame rate type field to set with the appropriate enum value
-            var frameRateTypeField = settings.GetType().GetField("m_FrameRateType", BindingFlags.NonPublic | BindingFlags.Instance);
+            var frameRateDict = frameRateDictField.GetValue(null) 
+                as System.Collections.IDictionary;
+
+            // Get the frame rate type field to set with 
+            // the appropriate enum value
+            var frameRateTypeField = settings.GetType().GetField(
+                "m_FrameRateType",
+                BindingFlags.NonPublic | BindingFlags.Instance
+            );
 
             bool setValue = false;
-            foreach (System.Collections.DictionaryEntry keyValuePair in frameRateDict)
+            foreach (DictionaryEntry keyValuePair in frameRateDict)
             {
                 float value = (float)keyValuePair.Value;
                 if(UnityEngine.Mathf.Abs(fps - value) < 0.01f)
@@ -40,8 +52,12 @@ namespace UnityEditor.ftrack
                 settings.frameRate = fps;
             }
 
-            // Now apply the window settings to all recorders and save the new global settings
-            var onGlobalSettingsChanged = window.GetType().GetMethod("OnGlobalSettingsChanged", BindingFlags.NonPublic | BindingFlags.Instance);
+            // Now apply the window settings to all recorders 
+            // and save the new global settings
+            var onGlobalSettingsChanged = window.GetType().GetMethod(
+                "OnGlobalSettingsChanged",
+                BindingFlags.NonPublic | BindingFlags.Instance
+            );
             onGlobalSettingsChanged.Invoke(window, new object[]{ });
         }
     }

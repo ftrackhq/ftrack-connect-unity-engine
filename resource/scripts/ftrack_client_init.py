@@ -68,7 +68,8 @@ class ftrackClientService(UnityClientService):
             # Create the menus
             unity_menus.generate()
             
-            # Synchronize the recorder to the shot associated with the context (if relevant)
+            # Synchronize the recorder to the shot associated
+            # with the context (if relevant)
             self._sync_recorder_values()
 
         except Exception as e:
@@ -92,10 +93,14 @@ class ftrackClientService(UnityClientService):
             fps = shot.get('fps')
         except Exception:
             fps = 1
-        Logger.debug('Setting Unity Recorder values:\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(frame_start, frame_end, fps))
+        Logger.debug('Setting Unity Recorder values:' + 
+                    '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(
+                        frame_start, frame_end, fps))
         
         # Sync the values        
-        UnityEditor().ftrack.Recorder.ApplySettings(int(frame_start), int(frame_end), fps)
+        UnityEditor().ftrack.Recorder.ApplySettings(
+            int(frame_start), int(frame_end), fps
+        )
     
     def ftrack_show_dialog(self, dialog_name):
         try:
