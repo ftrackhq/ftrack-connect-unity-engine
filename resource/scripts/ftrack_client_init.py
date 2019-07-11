@@ -83,11 +83,15 @@ class ftrackClientService(UnityClientService):
         
         if not frame_start or not frame_end:
             # Invalid values
+            Logger.error('Start or end frame values not set')
             return
         
-        shot_id = os.getenv('FTRACK_SHOTID')
-        shot = ftrack.Shot(id = shot_id)
-        fps = shot.get('fps')
+        try:
+            shot_id = os.getenv('FTRACK_SHOTID')
+            shot = ftrack.Shot(id = shot_id)
+            fps = shot.get('fps')
+        except Exception:
+            fps = 1
         
         # Sync the values        
         UnityEditor().ftrack.Recorder.ApplySettings(int(frame_start), int(frame_end), fps)

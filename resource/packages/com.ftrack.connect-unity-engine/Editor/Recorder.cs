@@ -26,9 +26,8 @@ namespace UnityEditor.ftrack
             bool setValue = false;
             foreach (System.Collections.DictionaryEntry keyValuePair in frameRateDict)
             {
-                float fpsRounded = (float)System.Math.Round(fps, 2);
-                float value = (float)System.Math.Round((float)keyValuePair.Value, 2);
-                if(fpsRounded == value)
+                float value = (float)keyValuePair.Value;
+                if(UnityEngine.Mathf.Abs(fps - value) < 0.01f)
                 {
                     frameRateTypeField.SetValue(settings, keyValuePair.Key);
                     setValue = true;
