@@ -2,6 +2,8 @@
 # :copyright: Copyright (c) 2019 ftrack
 
 # ftrack
+import ftrack
+import ftrack_api
 import ftrack_connect_unity
 from ftrack_connect.connector import FTAssetType, FTAssetHandlerInstance
 from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
@@ -22,8 +24,14 @@ class GenericAsset(FTAssetType):
             raise Exception('Invalid asset. See console for details')
                 
         # Ask for a destination directory (into the Unity project)
-        dst_directory = self._select_directory()
+        dst_directory = os.path.abspath(self._get_asset_relative_import_path(iAObj))
         
+        # Make sure the directory exists
+        if not dst_directory:
+            dst_directory = self._select_directory()
+        if dst_directory and not os.path.isdir(dst_directory):
+            os.makedirs(dst_directory)
+            
         # Import the asset
         model_importer = self._import_ftrack_asset(iAObj, dst_directory) 
         if not model_importer:
@@ -80,7 +88,23 @@ class GenericAsset(FTAssetType):
         '''
         # No option in the generic class
         return ''
+    
+    def _get_asset_relative_import_path(self, iAObj):
+        ftrack_asset_version = ftrack.AssetVersion(iAObj.assetVersionId)
+        task = ftrack_asset_version.getTask()
+        task_links = ftrack_api.Session().query(
+            'select link from Task where name is "{0}"'.format(task.getName())
+        ).first()['link']
         
+        relative_path = ""
+        # remove the project
+        task_links.pop(0)
+        for link in task_links:
+            relative_path += link['name'].replace(' ', '_')
+            relative_path += '/'
+        
+        return "{0}/ftrack/{1}".format(UnityEngine().Application.dataPath, relative_path)
+    
     def _select_directory(self):
         """
         Displays a system dialog for the user to pick a destination folder
