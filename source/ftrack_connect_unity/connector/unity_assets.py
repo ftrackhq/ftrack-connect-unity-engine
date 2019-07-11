@@ -200,6 +200,19 @@ class GenericAsset(FTAssetType):
         dst_file = os.path.join(dst_directory, iAObj.assetName)
         dst_file += extension
         dst_file = os.path.normpath(dst_file)
+        
+        # If the asset already exists, show a message box asking if the asset
+        # should be reimported
+        if os.path.exists(dst_file):
+            result = UnityEditor().EditorUtility.DisplayDialog(
+            "ftrack Asset Already Exists",
+            "This asset already exists in the project!\n" +
+            "Do you want to reimport this asset?",
+            "Yes", "No")
+            
+            if not result:
+                return None
+        
         try:
             shutil.copy2(src_file, dst_file)
         except IOError as e:
