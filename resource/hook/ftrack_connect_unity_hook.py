@@ -401,14 +401,14 @@ class ApplicationLauncher(ftrack_connect.application.ApplicationLauncher):
         taskParent = task.getParent()
 
         try:
-            environment['FTRACK_FS'] = str(int(taskParent.getFrameStart()))
+            environment['FS'] = str(int(taskParent.getFrameStart()))
         except Exception:
-            environment['FTRACK_FS'] = '0'
+            environment['FS'] = '0'
 
         try:
-            environment['FTRACK_FE'] = str(int(taskParent.getFrameEnd()))
+            environment['FE'] = str(int(taskParent.getFrameEnd()))
         except Exception:
-            environment['FTRACK_FE'] = '0'
+            environment['FE'] = '0'
         
         environment['FTRACK_TASKID'] = task.getId()
         environment['FTRACK_SHOTID'] = task.get('parent_id')

@@ -79,23 +79,18 @@ class ftrackClientService(UnityClientService):
     
     def _sync_recorder_values(self):
         # The hook must provide us with start/end values
-        frame_start = os.environ.get("FTRACK_FS")
-        frame_end = os.environ.get("FTRACK_FE")
-        
-        if not frame_start or not frame_end:
-            # Invalid values
-            Logger.error('Start or end frame values not set')
-            return
+        frame_start = os.environ.get("FS")
+        frame_end = os.environ.get("FE")
         
         try:
             shot_id = os.getenv('FTRACK_SHOTID')
             shot = ftrack.Shot(id = shot_id)
             fps = shot.get('fps')
         except Exception:
-            fps = 1
+            fps = 24
         Logger.debug('Setting Unity Recorder values:' + 
-                    '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(
-                        frame_start, frame_end, fps))
+                    '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(frame_start, frame_end, fps)
+                    )
         
         # Sync the values        
         UnityEditor().ftrack.Recorder.ApplySettings(
