@@ -88,9 +88,10 @@ class ftrackClientService(UnityClientService):
             fps = shot.get('fps')
         except Exception:
             fps = 24
-        Logger.debug('Setting Unity Recorder values:' + 
-                    '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(frame_start, frame_end, fps)
-                    )
+        Logger.debug(
+        'Setting Unity Recorder values:' + 
+        '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(frame_start, frame_end, fps)
+        )
         
         # Sync the values        
         UnityEditor().ftrack.Recorder.ApplySettings(
