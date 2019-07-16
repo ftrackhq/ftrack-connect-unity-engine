@@ -12,8 +12,11 @@ from unity_client_service import UnityClientService
 
 # ftrack
 import ftrack
-from connector.unity_connector import Connector, Logger, UnityEngine
+from connector.unity_connector import Connector, Logger, UnityEngine, UnityEditor
 from ui import unity_menus
+
+# Misc
+import os
 
 # globals
 _connector = Connector()
@@ -64,12 +67,37 @@ class ftrackClientService(UnityClientService):
             
             # Create the menus
             unity_menus.generate()
+            
+            # Synchronize the recorder to the shot associated
+            # with the context (if relevant)
+            self._sync_recorder_values()
 
         except Exception as e:
             import traceback
             Logger.error('Got an exception: {}'.format(e))
             Logger.error('Stack trace:\n\n{}'.format(traceback.format_exc()))
+    
+    def _sync_recorder_values(self):
+        # The hook must provide us with start/end values
+        frame_start = os.environ.get("FS")
+        frame_end = os.environ.get("FE")
         
+        try:
+            shot_id = os.getenv('FTRACK_SHOTID')
+            shot = ftrack.Shot(id = shot_id)
+            fps = shot.get('fps')
+        except Exception:
+            fps = 24
+        Logger.debug(
+        'Setting Unity Recorder values:'
+        '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(frame_start, frame_end, fps)
+        )
+        
+        # Sync the values        
+        UnityEditor().ftrack.Recorder.ApplySettings(
+            int(frame_start), int(frame_end), fps
+        )
+    
     def ftrack_show_dialog(self, dialog_name):
         try:
             Logger.debug('ftrackClientService.ftrack_show_dialog: dialog_name = {}'.format(dialog_name))
