@@ -89,6 +89,7 @@ def generate():
     # Build the final file path
     ftrack_asset_path = UnityEngine().Application.dataPath
     ftrack_asset_path = os.path.join(ftrack_asset_path, 'ftrack')
+    ftrack_asset_path = os.path.join(ftrack_asset_path, 'Temp')
     ftrack_asset_path = os.path.normpath(ftrack_asset_path)
 
     script_path = os.path.join(ftrack_asset_path, 'FtrackMenus.cs')
