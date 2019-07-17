@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 
+
 class GenericAsset(FTAssetType):
     def __init__(self):
         super(GenericAsset, self).__init__()
@@ -101,7 +102,8 @@ class GenericAsset(FTAssetType):
             relative_path += link['name'].replace(' ', '_')
             relative_path += '/'
         
-        return "{0}/ftrack/{1}".format(UnityEngine().Application.dataPath, relative_path)
+        return "{0}/ftrack/{1}".format(
+            UnityEngine().Application.dataPath, relative_path)
     
     def _select_directory(self):
         """
@@ -205,10 +207,10 @@ class GenericAsset(FTAssetType):
         # should be reimported
         if os.path.exists(dst_file):
             result = UnityEditor().EditorUtility.DisplayDialog(
-            "ftrack Asset Already Exists",
-            "This asset already exists in the project!\n" +
-            "Do you want to reimport this asset?",
-            "Yes", "No")
+                "ftrack Asset Already Exists",
+                "This asset already exists in the project!\n" +
+                "Do you want to reimport this asset?",
+                "Yes", "No")
             
             if not result:
                 return None
