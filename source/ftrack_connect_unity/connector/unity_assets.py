@@ -5,7 +5,8 @@
 import ftrack
 import ftrack_api
 import ftrack_connect_unity
-from ftrack_connect.connector import FTAssetType, FTAssetHandlerInstance
+from ftrack_connect.connector import (FTAssetType, FTAssetHandlerInstance,
+                                      FTComponent)
 from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 
 # misc
@@ -78,7 +79,6 @@ class GenericAsset(FTAssetType):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        Logger.debug('In Connector.publishAsset. Not implemented yet')
         componentName = "reviewable_asset"
         publishedComponents = []
         temporaryPath = "d:/temp/Minimal_Default.avi"

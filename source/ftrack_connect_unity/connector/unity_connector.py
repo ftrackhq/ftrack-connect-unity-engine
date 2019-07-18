@@ -2,6 +2,7 @@
 # :copyright: Copyright (c) 2019 ftrack
 
 # ftrack
+import ftrack
 import ftrack_connect.config
 from ftrack_connect.connector import base as maincon
 from ftrack_connect.connector import FTAssetHandlerInstance
@@ -84,8 +85,8 @@ class Connector(maincon.Connector):
         super(Connector, self).__init__()
 
     @staticmethod
-   def getCurrentEntity():
-       return ftrack.Task(
+    def getCurrentEntity():
+        return ftrack.Task(
                os.getenv('FTRACK_TASKID'),
                os.getenv('FTRACK_SHOTID'))
 
