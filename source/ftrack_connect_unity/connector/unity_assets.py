@@ -2,6 +2,8 @@
 # :copyright: Copyright (c) 2019 ftrack
 
 # ftrack
+import ftrack
+import ftrack_api
 import ftrack_connect_unity
 from ftrack_connect.connector import FTAssetType, FTAssetHandlerInstance
 from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
@@ -10,6 +12,7 @@ from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 import json
 import os
 import shutil
+
 
 class GenericAsset(FTAssetType):
     def __init__(self):
@@ -22,8 +25,12 @@ class GenericAsset(FTAssetType):
             raise Exception('Invalid asset. See console for details')
                 
         # Ask for a destination directory (into the Unity project)
-        dst_directory = self._select_directory()
+        dst_directory = os.path.abspath(self._get_asset_import_path(iAObj))
         
+        # Make sure the directory exists
+        if not dst_directory:
+            dst_directory = self._select_directory()
+            
         # Import the asset
         model_importer = self._import_ftrack_asset(iAObj, dst_directory) 
         if not model_importer:
@@ -80,7 +87,24 @@ class GenericAsset(FTAssetType):
         '''
         # No option in the generic class
         return ''
+    
+    def _get_asset_import_path(self, iAObj):
+        ftrack_asset_version = ftrack.AssetVersion(iAObj.assetVersionId)
+        task = ftrack_asset_version.getTask()
+        task_links = ftrack_api.Session().query(
+            'select link from Task where name is "{0}"'.format(task.getName())
+        ).first()['link']
         
+        relative_path = ""
+        # remove the project
+        task_links.pop(0)
+        for link in task_links:
+            relative_path += link['name'].replace(' ', '_')
+            relative_path += '/'
+        
+        return "{0}/ftrack/{1}".format(
+            UnityEngine().Application.dataPath, relative_path)
+    
     def _select_directory(self):
         """
         Displays a system dialog for the user to pick a destination folder
@@ -146,8 +170,8 @@ class GenericAsset(FTAssetType):
         Attemps to import the give asset .fbx file
         Returns the model importer if successful, otherwise returns None
         '''
-        # The destination directory must exist
-        if not dst_directory or not os.path.isdir(dst_directory):
+        # The destination directory must be set
+        if not dst_directory:
             error_string = 'ftrack cannot import into the chosen directory "{}"'.format(dst_directory)
             Logger.error(error_string)
             
@@ -166,6 +190,10 @@ class GenericAsset(FTAssetType):
             UnityEngine().Debug.LogError(error_string)
             return None
         
+        # Make sure the directory exists
+        if not os.path.isdir(dst_directory):
+            os.makedirs(dst_directory)
+        
         # Copy the file
         src_file = iAObj.filePath
         (_, extension) = os.path.splitext(src_file)
@@ -174,6 +202,19 @@ class GenericAsset(FTAssetType):
         dst_file = os.path.join(dst_directory, iAObj.assetName)
         dst_file += extension
         dst_file = os.path.normpath(dst_file)
+        
+        # If the asset already exists, show a message box asking if the asset
+        # should be reimported
+        if os.path.exists(dst_file):
+            result = UnityEditor().EditorUtility.DisplayDialog(
+                "ftrack Asset Already Exists",
+                "This asset already exists in the project!\n" +
+                "Do you want to reimport this asset?",
+                "Yes", "No")
+            
+            if not result:
+                return None
+        
         try:
             shutil.copy2(src_file, dst_file)
         except IOError as e:

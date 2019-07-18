@@ -38,7 +38,7 @@ namespace UnityEditor.ftrack.connect_unity_engine
 
             // Remove the Assets/ftrack directory
             string ftrackAssetPath = UnityEngine.Application.dataPath;
-            ftrackAssetPath = Path.Combine(ftrackAssetPath, "ftrack");
+            ftrackAssetPath = Path.Combine(ftrackAssetPath, "ftrack/Temp");
             try
             {
                 Directory.Delete(ftrackAssetPath, true);
