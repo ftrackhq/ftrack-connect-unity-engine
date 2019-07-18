@@ -79,6 +79,18 @@ class GenericAsset(FTAssetType):
         Publish the asset defined by the provided *iAObj*.
         '''
         Logger.debug('In Connector.publishAsset. Not implemented yet')
+        componentName = "reviewable_asset"
+        publishedComponents = []
+        temporaryPath = "d:/temp/Minimal_Default.avi"
+
+        publishedComponents.append(
+            FTComponent(
+                componentname=componentName,
+                path=temporaryPath
+            )
+        )
+        #currentVersion = ftrack.AssetVersion(iAObj.assetVersionId)
+        return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
 
     @classmethod
     def importOptions(cls):

@@ -125,6 +125,10 @@ class ftrackClientService(UnityClientService):
                 from ftrack_connect.ui.widget.asset_manager import FtrackAssetManagerDialog
                 ftrack_dialog = FtrackAssetManagerDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('AssetManager')
+            elif dialog_name == 'Publish':
+                from ftrack_connect_unity.ui.publisher import FtrackPublishDialog
+                ftrack_dialog = FtrackPublishDialog(connector=_connector)
+                ftrack_dialog.setWindowTitle('Publish')
             else:
                 error_string = 'Invalid dialog name: "{}"'.format(dialog_name) 
                 Logger.error(error_string)

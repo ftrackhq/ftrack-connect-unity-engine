@@ -83,6 +83,12 @@ class Connector(maincon.Connector):
     def __init__(self):
         super(Connector, self).__init__()
 
+    @staticmethod
+   def getCurrentEntity():
+       return ftrack.Task(
+               os.getenv('FTRACK_TASKID'),
+               os.getenv('FTRACK_SHOTID'))
+
     @classmethod
     def registerAssets(cls):
         '''
@@ -104,6 +110,17 @@ class Connector(maincon.Connector):
             import_asset.importAsset(iAObj)
         else:
             Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
+
+    @staticmethod
+    def publishAsset(iAObj=None):
+        '''Publish the asset provided by *iAObj*'''
+        assetHandler = FTAssetHandlerInstance.instance()
+        pubAsset = assetHandler.getAssetClass(iAObj.assetType)
+        if pubAsset:
+            publishedComponents, message = pubAsset.publishAsset(iAObj)
+            return publishedComponents, message
+        else:
+            return [], 'assetType not supported'
 
     @staticmethod
     def getAssets():
