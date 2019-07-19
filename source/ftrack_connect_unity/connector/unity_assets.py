@@ -75,13 +75,13 @@ class GenericAsset(FTAssetType):
     
         return True
 
-    def publishAsset(self, iAObj=None):
+    def publishAsset(self, published_file_path, iAObj=None):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
         componentName = "reviewable_asset"
         publishedComponents = []
-        temporaryPath = "d:/temp/Minimal_Default.avi"
+        temporaryPath = "{0}.mp4".format(published_file_path)  # "D:/Users/Viktoria/Documents/ftrack_project/Recordings/movie.mp4"
 
         publishedComponents.append(
             FTComponent(

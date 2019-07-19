@@ -113,12 +113,12 @@ class Connector(maincon.Connector):
             Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
 
     @staticmethod
-    def publishAsset(iAObj=None):
+    def publishAsset(published_file_path, iAObj=None):
         '''Publish the asset provided by *iAObj*'''
         assetHandler = FTAssetHandlerInstance.instance()
         pubAsset = assetHandler.getAssetClass(iAObj.assetType)
         if pubAsset:
-            publishedComponents, message = pubAsset.publishAsset(iAObj)
+            publishedComponents, message = pubAsset.publishAsset(published_file_path, iAObj)
             return publishedComponents, message
         else:
             return [], 'assetType not supported'
@@ -151,7 +151,34 @@ class Connector(maincon.Connector):
         else:
             Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
             return False
-            
+
+    @staticmethod
+    def getAsset(assetName, assetType):
+        unity_asset_guids = UnityEditor().AssetDatabase.FindAssets('t:model', None)
+        for guid in unity_asset_guids:
+            # Get the asset path
+            asset_path = UnityEditor().AssetDatabase.GUIDToAssetPath(guid)
+
+            # Get the importer for that asset
+            asset_importer = UnityEditor().AssetImporter.GetAtPath(asset_path)
+
+            # Get the metadata
+            try:
+                json_data = json.loads(asset_importer.userData)
+            except:
+                # Invalid or no user data.
+                continue
+
+            # Make sure this is metadata is for ftrack by looking for this key
+            if json_data.get('ftrack_connect_unity_version'):
+                if json_data.get('assetName') == assetName and \
+                json_data.get('assetType') == assetType:
+                    # We use the guid as the name (will be passed back as the
+                    # applicationObject when changeVersion gets called
+                    return json_data.get('assetVersionId')
+
+        return None
+
     @staticmethod
     def getSelectedAssets():
         '''

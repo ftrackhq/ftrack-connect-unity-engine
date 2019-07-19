@@ -23,6 +23,7 @@ _connector = Connector()
 _ftrack_is_initialized = False
 _the_application = None
 _dialogs = []
+_publish_dialog = None
 
 def on_init_client(client):
     """
@@ -98,6 +99,10 @@ class ftrackClientService(UnityClientService):
             int(frame_start), int(frame_end), fps
         )
     
+    def publish_callback(self, file_path):
+        global _publish_dialog
+        _publish_dialog.publishAsset2(file_path)
+
     def ftrack_show_dialog(self, dialog_name):
         try:
             Logger.debug('ftrackClientService.ftrack_show_dialog: dialog_name = {}'.format(dialog_name))
@@ -129,6 +134,8 @@ class ftrackClientService(UnityClientService):
                 from ftrack_connect_unity.ui.publisher import FtrackPublishDialog
                 ftrack_dialog = FtrackPublishDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('Publish')
+                global _publish_dialog
+                _publish_dialog = ftrack_dialog
             else:
                 error_string = 'Invalid dialog name: "{}"'.format(dialog_name) 
                 Logger.error(error_string)

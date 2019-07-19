@@ -16,7 +16,7 @@ from ftrack_connect.ui.theme import applyTheme
 from ftrack_connect.ui.widget.context_selector import ContextSelector
 from ftrack_connect_unity.ui.export_asset_options_widget import ExportAssetOptionsWidget
 from ftrack_connect_unity.ui.export_options_widget import ExportOptionsWidget
-from ftrack_connect_unity.connector.unity_connector import Connector
+from ftrack_connect_unity.connector.unity_connector import Connector, UnityEditor, UnityEngine
 
 
 class FtrackPublishDialog(QtWidgets.QDialog):
@@ -153,6 +153,9 @@ class FtrackPublishDialog(QtWidgets.QDialog):
 
     def publishAsset(self):
         '''Publish the asset'''
+        UnityEditor().ftrack.Recorder.Record()
+
+    def publishAsset2(self, published_file_path):
         task = self.exportAssetOptionsWidget.getTask()
         taskId = task.getId()
         shot = self.exportAssetOptionsWidget.getShot()
@@ -183,13 +186,29 @@ class FtrackPublishDialog(QtWidgets.QDialog):
 
         assetVersion = asset.createVersion(comment=comment, taskid=taskId)
 
+        #####
+        # get version that is in project
+        #  - given the name and type of asset
+        oldAssetVersion = ftrack.AssetVersion(Connector.getAsset(assetName, assettype))
+
+        # copy over used versions and components
+        usesVersions = list(oldAssetVersion.usesVersions())
+        usesVersions.append(oldAssetVersion)
+        assetVersion.addUsesVersions(usesVersions)
+
+        oldComponents = oldAssetVersion.getComponents()
+        for oldComp in oldComponents:
+            assetVersion.createComponent(name=oldComp.getName(), path=oldComp.getFilesystemPath())
+
+        #####
+
         pubObj = ftrack_connector.FTAssetObject(
             assetVersionId=assetVersion.getId(),
             options=options
         )
         try:
             logging.info('pubObj' + str(pubObj))
-            publishedComponents, message = self.connector.publishAsset(pubObj)
+            publishedComponents, message = self.connector.publishAsset(published_file_path, pubObj)
         except:
             self.exportOptionsWidget.setProgress(100)
             self.showError('Publish failed. Please check the console.')
