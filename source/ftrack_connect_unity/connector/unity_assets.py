@@ -100,6 +100,19 @@ class GenericAsset(FTAssetType):
         # No option in the generic class
         return ''
     
+    @classmethod
+    def exportOptions(cls):
+        '''
+        Return export options for the component
+        '''
+        xml = """
+        <tab name="Options" accepts="unity" enabled="False">
+            <row name="Publish Reviewable" accepts="unity">
+                <option type="checkbox" name="publishReviewable" value="True"/>
+            </row>
+        </tab>"""
+        return xml
+
     def _get_asset_import_path(self, iAObj):
         ftrack_asset_version = ftrack.AssetVersion(iAObj.assetVersionId)
         task = ftrack_asset_version.getTask()
@@ -354,7 +367,18 @@ class RigAsset(GenericAsset):
         model_importer.importMaterials = False
 
 class ImageSequenceAsset(GenericAsset):
-    pass
+    @classmethod
+    def exportOptions(cls):
+        '''
+        Return export options for the component
+        '''
+        xml = """
+        <tab name="Options" accepts="unity" enabled="True">
+            <row name="Publish Reviewable" accepts="unity">
+                <option type="checkbox" name="publishReviewable" value="False"/>
+            </row>
+        </tab>"""
+        return xml
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
