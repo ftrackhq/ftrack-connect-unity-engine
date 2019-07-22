@@ -353,8 +353,12 @@ class RigAsset(GenericAsset):
         # directly in the ModelImporter Inspector panel 
         model_importer.importMaterials = False
 
+class ImageSequenceAsset(GenericAsset):
+    pass
+
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
     assetHandler.registerAssetType(name='anim', cls=AnimAsset)
     assetHandler.registerAssetType(name='geo', cls=GeoAsset)
     assetHandler.registerAssetType(name='rig', cls=RigAsset)
+    assetHandler.registerAssetType(name="img", cls=ImageSequenceAsset)
