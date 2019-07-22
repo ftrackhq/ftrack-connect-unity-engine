@@ -220,8 +220,8 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
         '''
         session = ftrack_api.Session()
         linksForTask = session.query(
-            'select link from Task where name is "' +
-            currentTask.getName() + '"'
+            'select link from Task where id is "' +
+            currentTask.getId() + '"'
         ).first()['link']
         # Remove task itself
         linksForTask.pop()
@@ -258,10 +258,7 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
                 self.ui.ListStatusComboBox.hide()
                 self.ui.assetTaskLabel_2.hide()
 
-            if self.browseMode == 'Task':
-                task = self.currentTask.getParent()
-
-            assets = task.getAssets(assetTypes=self.assetTypesStr)
+            assets = self.currentTask.getAssets(assetTypes=self.assetTypesStr)
             assets = sorted(assets, key=lambda a: a.getName().lower())
             self.ui.ListAssetsViewModel.clear()
 
@@ -280,6 +277,11 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
                     itemType = QtGui.QStandardItem('')
                 self.ui.ListAssetsViewModel.setItem(0, 0, item)
                 self.ui.ListAssetsViewModel.setItem(0, 1, itemType)
+
+            assetsLength = len(assets)
+            self.ui.ListAssetNamesComboBox.setEnabled(
+                False if assetsLength <= 0 and not isShot else True
+                )
 
             blankRows = 0
             jStart = 1 if isShot else 0

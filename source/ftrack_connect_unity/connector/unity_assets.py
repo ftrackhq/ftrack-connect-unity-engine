@@ -106,8 +106,8 @@ class GenericAsset(FTAssetType):
         Return export options for the component
         '''
         xml = """
-        <tab name="Options" accepts="unity" enabled="False">
-            <row name="Publish Reviewable" accepts="unity">
+        <tab name="Options" accepts="unity">
+            <row name="Publish Reviewable" accepts="unity" enabled="False">
                 <option type="checkbox" name="publishReviewable" value="True"/>
             </row>
         </tab>"""
@@ -373,8 +373,8 @@ class ImageSequenceAsset(GenericAsset):
         Return export options for the component
         '''
         xml = """
-        <tab name="Options" accepts="unity" enabled="True">
-            <row name="Publish Reviewable" accepts="unity">
+        <tab name="Options" accepts="unity">
+            <row name="Publish Reviewable" accepts="unity" enabled="True">
                 <option type="checkbox" name="publishReviewable" value="False"/>
             </row>
         </tab>"""
