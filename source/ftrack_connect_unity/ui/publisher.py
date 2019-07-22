@@ -189,16 +189,22 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         #####
         # get version that is in project
         #  - given the name and type of asset
-        oldAssetVersion = ftrack.AssetVersion(Connector.getAsset(assetName, assettype))
+        # Don't need to do this for image sequences
+        if assettype != "img":
+            oldAssetVersion = Connector.getAsset(assetName, assettype, taskId)
+            if not oldAssetVersion:
+                self.showError("Publish failed: Selected asset not in project")
+                return
 
-        # copy over used versions and components
-        usesVersions = list(oldAssetVersion.usesVersions())
-        usesVersions.append(oldAssetVersion)
-        assetVersion.addUsesVersions(usesVersions)
+            # copy over used versions and components
+            usesVersions = list(oldAssetVersion.usesVersions())
+            usesVersions.append(oldAssetVersion)
+            assetVersion.addUsesVersions(usesVersions)
 
-        oldComponents = oldAssetVersion.getComponents()
-        for oldComp in oldComponents:
-            assetVersion.createComponent(name=oldComp.getName(), path=oldComp.getFilesystemPath())
+            oldComponents = oldAssetVersion.getComponents()
+            for oldComp in oldComponents:
+                assetVersion.createComponent(name=oldComp.getName(),
+                                             path=oldComp.getFilesystemPath())
 
         #####
 

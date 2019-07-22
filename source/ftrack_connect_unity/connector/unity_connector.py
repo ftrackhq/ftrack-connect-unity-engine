@@ -153,7 +153,7 @@ class Connector(maincon.Connector):
             return False
 
     @staticmethod
-    def getAsset(assetName, assetType):
+    def getAsset(assetName, assetType, taskid):
         unity_asset_guids = UnityEditor().AssetDatabase.FindAssets('t:model', None)
         for guid in unity_asset_guids:
             # Get the asset path
@@ -172,10 +172,13 @@ class Connector(maincon.Connector):
             # Make sure this is metadata is for ftrack by looking for this key
             if json_data.get('ftrack_connect_unity_version'):
                 if json_data.get('assetName') == assetName and \
-                json_data.get('assetType') == assetType:
+                   json_data.get('assetType') == assetType:
                     # We use the guid as the name (will be passed back as the
                     # applicationObject when changeVersion gets called
-                    return json_data.get('assetVersionId')
+                    asset_version_id = json_data.get('assetVersionId')
+                    asset_version = ftrack.AssetVersion(asset_version_id)
+                    if asset_version.getTask().getId() == taskid:
+                        return asset_version
 
         return None
 
