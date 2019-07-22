@@ -8,6 +8,7 @@ import logging
 from QtExt import QtCore, QtWidgets, QtGui
 
 import ftrack
+import ftrack_api
 from ftrack_connect.connector import FTAssetHandlerInstance
 
 log = logging.getLogger(__file__)
@@ -211,6 +212,29 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
             self.ui.AssetNameLineEdit.setEnabled(True)
             self.ui.AssetNameLineEdit.setText('')
 
+    @staticmethod
+    def _isTaskPartOfShotOrSequence(currentTask):
+        '''
+        Return whether the given task is part of a shot
+        or sequence.
+        '''
+        session = ftrack_api.Session()
+        linksForTask = session.query(
+            'select link from Task where name is "' +
+            currentTask.getName() + '"'
+        ).first()['link']
+        # Remove task itself
+        linksForTask.pop()
+        linksForTask.reverse()
+        parentShotSequence = None
+
+        for item in linksForTask:
+            entity = session.get(item['type'], item['id'])
+            if entity.__class__.__name__ == 'Shot' or \
+               entity.__class__.__name__ == 'Sequence':
+                return True
+        return False
+
     @QtCore.Slot(object)
     def updateView(self, ftrackEntity):
         '''Update view with the provided *ftrackEntity*'''
@@ -241,18 +265,24 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
             assets = sorted(assets, key=lambda a: a.getName().lower())
             self.ui.ListAssetsViewModel.clear()
 
-            item = QtGui.QStandardItem('New')
-            item.id = ''
-            curAssetType = self.currentAssetType
-            if curAssetType:
-                itemType = QtGui.QStandardItem(curAssetType)
-            else:
-                itemType = QtGui.QStandardItem('')
-            self.ui.ListAssetsViewModel.setItem(0, 0, item)
-            self.ui.ListAssetsViewModel.setItem(0, 1, itemType)
-            self.ui.ListAssetNamesComboBox.setCurrentIndex(0)
+            # if task is for a shot, then allow new option,
+            # otherwise force user to use an existing asset
+            isShot = ExportAssetOptionsWidget._isTaskPartOfShotOrSequence(
+                self.currentTask)
+
+            if isShot:
+                item = QtGui.QStandardItem('New')
+                item.id = ''
+                curAssetType = self.currentAssetType
+                if curAssetType:
+                    itemType = QtGui.QStandardItem(curAssetType)
+                else:
+                    itemType = QtGui.QStandardItem('')
+                self.ui.ListAssetsViewModel.setItem(0, 0, item)
+                self.ui.ListAssetsViewModel.setItem(0, 1, itemType)
 
             blankRows = 0
+            jStart = 1 if isShot else 0
             for i in range(0, len(assets)):
                 assetName = assets[i].getName()
                 if assetName != '':
@@ -262,11 +292,12 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
                         assets[i].getType().getShort()
                     )
 
-                    j = i - blankRows + 1
+                    j = i - blankRows + jStart
                     self.ui.ListAssetsViewModel.setItem(j, 0, item)
                     self.ui.ListAssetsViewModel.setItem(j, 1, itemType)
                 else:
                     blankRows += 1
+            self.ui.ListAssetNamesComboBox.setCurrentIndex(0)
         except:
             import traceback
             import sys
