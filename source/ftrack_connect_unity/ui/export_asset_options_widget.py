@@ -8,8 +8,8 @@ import logging
 from QtExt import QtCore, QtWidgets, QtGui
 
 import ftrack
-import ftrack_api
 from ftrack_connect.connector import FTAssetHandlerInstance
+from ftrack_connect_unity.connector.unity_connector import Connector
 
 log = logging.getLogger(__file__)
 
@@ -212,29 +212,6 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
             self.ui.AssetNameLineEdit.setEnabled(True)
             self.ui.AssetNameLineEdit.setText('')
 
-    @staticmethod
-    def _isTaskPartOfShotOrSequence(currentTask):
-        '''
-        Return whether the given task is part of a shot
-        or sequence.
-        '''
-        session = ftrack_api.Session()
-        linksForTask = session.query(
-            'select link from Task where id is "' +
-            currentTask.getId() + '"'
-        ).first()['link']
-        # Remove task itself
-        linksForTask.pop()
-        linksForTask.reverse()
-        parentShotSequence = None
-
-        for item in linksForTask:
-            entity = session.get(item['type'], item['id'])
-            if entity.__class__.__name__ == 'Shot' or \
-               entity.__class__.__name__ == 'Sequence':
-                return True
-        return False
-
     @QtCore.Slot(object)
     def updateView(self, ftrackEntity):
         '''Update view with the provided *ftrackEntity*'''
@@ -264,7 +241,7 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
 
             # if task is for a shot, then allow new option,
             # otherwise force user to use an existing asset
-            isShot = ExportAssetOptionsWidget._isTaskPartOfShotOrSequence(
+            isShot = Connector.isTaskPartOfShotOrSequence(
                 self.currentTask)
 
             if isShot:

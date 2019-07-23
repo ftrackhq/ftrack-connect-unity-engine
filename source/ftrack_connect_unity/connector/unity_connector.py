@@ -3,6 +3,7 @@
 
 # ftrack
 import ftrack
+import ftrack_api
 import ftrack_connect.config
 from ftrack_connect.connector import base as maincon
 from ftrack_connect.connector import FTAssetHandlerInstance
@@ -89,6 +90,29 @@ class Connector(maincon.Connector):
         return ftrack.Task(
                os.getenv('FTRACK_TASKID'),
                os.getenv('FTRACK_SHOTID'))
+
+    @staticmethod
+    def isTaskPartOfShotOrSequence(currentTask):
+        '''
+        Return whether the given task is part of a shot
+        or sequence.
+        '''
+        session = ftrack_api.Session()
+        linksForTask = session.query(
+            'select link from Task where id is "' +
+            currentTask.getId() + '"'
+        ).first()['link']
+        # Remove task itself
+        linksForTask.pop()
+        linksForTask.reverse()
+        parentShotSequence = None
+
+        for item in linksForTask:
+            entity = session.get(item['type'], item['id'])
+            if entity.__class__.__name__ == 'Shot' or \
+               entity.__class__.__name__ == 'Sequence':
+                return True
+        return False
 
     @classmethod
     def registerAssets(cls):

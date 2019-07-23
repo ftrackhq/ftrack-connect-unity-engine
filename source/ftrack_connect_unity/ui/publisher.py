@@ -153,6 +153,10 @@ class FtrackPublishDialog(QtWidgets.QDialog):
 
     def publishAsset(self):
         '''Publish the asset'''
+        assetName = self.exportAssetOptionsWidget.getAssetName()
+        if assetName == '':
+            self.showWarning('Missing assetName', 'assetName can not be blank')
+            return
         UnityEditor().ftrack.Recorder.Record()
 
     def publishAsset2(self, published_file_path):
@@ -182,7 +186,7 @@ class FtrackPublishDialog(QtWidgets.QDialog):
             return
 
         self.exportOptionsWidget.setProgress(0)
-        asset = shot.createAsset(assetName, assettype) #Should we hardcode the asset tyte to render or image sequence?
+        asset = shot.createAsset(assetName, assettype)
 
         assetVersion = asset.createVersion(comment=comment, taskid=taskId)
 

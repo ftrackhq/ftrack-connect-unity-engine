@@ -81,7 +81,7 @@ class GenericAsset(FTAssetType):
         '''
         componentName = "reviewable_asset"
         publishedComponents = []
-        temporaryPath = "{0}.mp4".format(published_file_path)  # "D:/Users/Viktoria/Documents/ftrack_project/Recordings/movie.mp4"
+        temporaryPath = "{0}.mp4".format(published_file_path)
 
         publishedComponents.append(
             FTComponent(
@@ -89,7 +89,6 @@ class GenericAsset(FTAssetType):
                 path=temporaryPath
             )
         )
-        #currentVersion = ftrack.AssetVersion(iAObj.assetVersionId)
         return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
 
     @classmethod
@@ -117,7 +116,7 @@ class GenericAsset(FTAssetType):
         ftrack_asset_version = ftrack.AssetVersion(iAObj.assetVersionId)
         task = ftrack_asset_version.getTask()
         task_links = ftrack_api.Session().query(
-            'select link from Task where name is "{0}"'.format(task.getName())
+            'select link from Task where id is "{0}"'.format(task.getId())
         ).first()['link']
         
         relative_path = ""
