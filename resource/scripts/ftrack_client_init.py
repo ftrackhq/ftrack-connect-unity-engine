@@ -101,7 +101,7 @@ class ftrackClientService(UnityClientService):
     
     def publish_callback(self, file_path):
         global _publish_dialog
-        _publish_dialog.publishAsset2(file_path)
+        _publish_dialog.publishAsset(file_path)
 
     def ftrack_show_dialog(self, dialog_name):
         try:
