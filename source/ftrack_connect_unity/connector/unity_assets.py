@@ -379,6 +379,26 @@ class ImageSequenceAsset(GenericAsset):
         </tab>"""
         return xml
 
+    def publishAsset(self, published_file_path, iAObj=None):
+        '''
+        Publish the asset defined by the provided *iAObj*.
+        '''
+        publishReviewable = iAObj.options.get('publishReviewable')
+        if publishReviewable:
+            componentName = "reviewable_asset"
+            publishedComponents = []
+            temporaryPath = "{0}.mp4".format(published_file_path)
+
+            publishedComponents.append(
+                FTComponent(
+                    componentname=componentName,
+                    path=temporaryPath
+                )
+            )
+            return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
+        else:
+            return None, "Publishing Image Sequence"
+
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
     assetHandler.registerAssetType(name='anim', cls=AnimAsset)

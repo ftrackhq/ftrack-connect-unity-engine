@@ -161,7 +161,13 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         if not assettype:
             self.showWarning('Missing assetType', 'assetType can not be blank')
             return
-        UnityEditor().ftrack.Recorder.Record()
+
+        options = self.exportOptionsWidget.getOptions()
+        publishReviewable = options.get('publishReviewable')
+        if publishReviewable:
+            UnityEditor().ftrack.Recorder.Record()
+        else:
+            self.showWarning("publishing image seq", 'publishing image seq')
         self.exportOptionsWidget.setProgress(25)
 
     def publishAsset(self, published_file_path):
