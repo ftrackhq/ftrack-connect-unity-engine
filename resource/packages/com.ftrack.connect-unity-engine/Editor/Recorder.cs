@@ -8,7 +8,7 @@ namespace UnityEditor.ftrack
     public class Recorder
     {
         private static string s_origFilePath = null;
-        private static MovieRecorderSettings s_recorderSettings = null;
+        private static RecorderSettings s_recorderSettings = null;
 
         /// <summary>
         /// We must install the delegate on each domain reload
@@ -20,6 +20,16 @@ namespace UnityEditor.ftrack
             {
                 EditorApplication.playModeStateChanged += OnPlayModeStateChange;
             }
+        }
+
+        private static void RecordMovie()
+        {
+
+        }
+
+        public static void RecordImageSeqence()
+        {
+
         }
 
         public static void Record()
@@ -118,13 +128,13 @@ namespace UnityEditor.ftrack
             return propInfo.GetValue(from);
         }
 
-        private static MovieRecorderSettings RecorderSettings
+        private static RecorderSettings RecorderSettings
         {
             get
             {
                 if (s_recorderSettings == null)
                 {
-                    s_recorderSettings = GetRecorder();
+                    s_recorderSettings = GetRecorder<MovieRecorderSettings>();
                     if (s_recorderSettings == null)
                     {
                         UnityEngine.Debug.LogError("Could not find a valid MovieRecorder");
@@ -154,7 +164,7 @@ namespace UnityEditor.ftrack
             recorderWindow.StartRecording();
         }
 
-        private static MovieRecorderSettings GetRecorder()
+        private static RecorderSettings GetRecorder<T>() where T : RecorderSettings
         {
             var recorderWindow = EditorWindow.GetWindow<RecorderWindow>();
             if (!recorderWindow)
@@ -169,20 +179,20 @@ namespace UnityEditor.ftrack
             if (selectedRecorder != null)
             {
                 RecorderSettings recorderSettings = GetPropertyValue("settings", selectedRecorder, BindingFlags.Public | BindingFlags.Instance) as RecorderSettings;
-                if (recorderSettings.GetType().Equals(typeof(MovieRecorderSettings)))
+                if (recorderSettings.GetType().Equals(typeof(T)))
                 {
                     // found movie recorder settings
-                    return recorderSettings as MovieRecorderSettings;
+                    return recorderSettings as T;
                 }
             }
 
             var recorderList = GetFieldValue("m_RecordingListItem", recorderWindow);
             var itemList = (IEnumerable)GetPropertyValue("items", recorderList, BindingFlags.Public | BindingFlags.Instance);
-            MovieRecorderSettings movieRecorder = null;
+            T movieRecorder = null;
             foreach (var item in itemList)
             {
                 RecorderSettings settings = GetPropertyValue("settings", item, BindingFlags.Public | BindingFlags.Instance) as RecorderSettings;
-                var recorder = settings as MovieRecorderSettings;
+                var recorder = settings as T;
                 if (recorder == null)
                 {
                     continue;
