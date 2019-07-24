@@ -217,8 +217,13 @@ class FtrackPublishDialog(QtWidgets.QDialog):
 
             oldComponents = oldAssetVersion.getComponents()
             for oldComp in oldComponents:
-                assetVersion.createComponent(name=oldComp.getName(),
-                                             path=oldComp.getFilesystemPath())
+                compName = oldComp.getName()
+                if compName == 'thumbnail' or compName == 'ftrackreview-mp4':
+                    continue
+                filePath = oldComp.getFilesystemPath()
+                assetVersion.createComponent(
+                    name=compName,
+                    path=(filePath if filePath else ''))
 
         pubObj = ftrack_connector.FTAssetObject(
             assetVersionId=assetVersion.getId(),
