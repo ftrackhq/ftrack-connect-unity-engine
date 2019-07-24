@@ -165,9 +165,9 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         options = self.exportOptionsWidget.getOptions()
         publishReviewable = options.get('publishReviewable')
         if publishReviewable:
-            UnityEditor().ftrack.Recorder.Record()
+            UnityEditor().ftrack.MovieRecorder.Record()
         else:
-            self.showWarning("publishing image seq", 'publishing image seq')
+            UnityEditor().ftrack.ImageSequenceRecorder.Record()
         self.exportOptionsWidget.setProgress(25)
 
     def publishAsset(self, published_file_path):

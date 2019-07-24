@@ -95,7 +95,7 @@ class ftrackClientService(UnityClientService):
         )
         
         # Sync the values        
-        UnityEditor().ftrack.Recorder.ApplySettings(
+        UnityEditor().ftrack.MovieRecorder.ApplySettings(
             int(frame_start), int(frame_end), fps
         )
     

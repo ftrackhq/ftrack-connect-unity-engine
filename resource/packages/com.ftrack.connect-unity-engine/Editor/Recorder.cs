@@ -5,11 +5,7 @@ using UnityEditor.Scripting.Python;
 
 namespace UnityEditor.ftrack
 {
-    public class Recorder
-    {
-        private static string s_origFilePath = null;
-        private static RecorderSettings s_recorderSettings = null;
-
+    public class ImageSequenceRecorder : FtrackRecorder<ImageRecorderSettings> {
         /// <summary>
         /// We must install the delegate on each domain reload
         /// </summary>
@@ -20,17 +16,30 @@ namespace UnityEditor.ftrack
             {
                 EditorApplication.playModeStateChanged += OnPlayModeStateChange;
             }
+            s_filename = "frame_<Frame>";
         }
+    }
 
-        private static void RecordMovie()
+    public class MovieRecorder : FtrackRecorder<MovieRecorderSettings> {
+        /// <summary>
+        /// We must install the delegate on each domain reload
+        /// </summary>
+        [InitializeOnLoadMethod]
+        private static void OnReload()
         {
-
+            if (IsRecording)
+            {
+                EditorApplication.playModeStateChanged += OnPlayModeStateChange;
+            }
+            s_filename = "reviewable";
         }
+    }
 
-        public static void RecordImageSeqence()
-        {
-
-        }
+    public class FtrackRecorder<T> where T : RecorderSettings
+    {
+        private static string s_origFilePath = null;
+        private static RecorderSettings s_recorderSettings = null;
+        protected static string s_filename = "test";
 
         public static void Record()
         {
@@ -41,10 +50,15 @@ namespace UnityEditor.ftrack
             RecorderPath = GetTempFilePath();
 
             // Delete the temp file if it already exists
-            string fullFilePath = RecorderPath + ".mp4";
+            /*string fullFilePath = RecorderPath + ".mp4";
             if (System.IO.File.Exists(fullFilePath))
             {
                 System.IO.File.Delete(fullFilePath);
+            }*/
+            string folderPath = System.IO.Directory.GetParent(RecorderPath.Replace('<', '_').Replace('>', '_')).FullName;
+            if (System.IO.Directory.Exists(folderPath))
+            {
+                System.IO.Directory.Delete(folderPath, true);
             }
 
             EditorApplication.playModeStateChanged += OnPlayModeStateChange;
@@ -52,8 +66,8 @@ namespace UnityEditor.ftrack
             StartRecording();
         }
 
-        private static string lockFilePath = GetTempFilePath() + ".RecordTimeline.lock";
-        private static bool IsRecording
+        private static string lockFilePath = GetTempFolderPath() + ".RecordTimeline.lock";
+        protected static bool IsRecording
         {
             get
             {
@@ -88,10 +102,21 @@ namespace UnityEditor.ftrack
             // TODO: what should the name of the video file be?
             tempPath = System.IO.Path.Combine(tempPath, UnityEngine.Application.productName);
 
+            return tempPath + "/" + s_filename;
+        }
+
+        private static string GetTempFolderPath()
+        {
+            // store to a temporary path, to delete after publish
+            var tempPath = System.IO.Path.GetTempPath();
+
+            // TODO: what should the name of the video file be?
+            tempPath = System.IO.Path.Combine(tempPath, UnityEngine.Application.productName);
+
             return tempPath;
         }
 
-        private static void OnPlayModeStateChange(PlayModeStateChange state)
+        protected static void OnPlayModeStateChange(PlayModeStateChange state)
         {
             if (IsRecording)
             {
@@ -134,7 +159,7 @@ namespace UnityEditor.ftrack
             {
                 if (s_recorderSettings == null)
                 {
-                    s_recorderSettings = GetRecorder<MovieRecorderSettings>();
+                    s_recorderSettings = GetRecorder();
                     if (s_recorderSettings == null)
                     {
                         UnityEngine.Debug.LogError("Could not find a valid MovieRecorder");
@@ -164,7 +189,7 @@ namespace UnityEditor.ftrack
             recorderWindow.StartRecording();
         }
 
-        private static RecorderSettings GetRecorder<T>() where T : RecorderSettings
+        private static RecorderSettings GetRecorder()
         {
             var recorderWindow = EditorWindow.GetWindow<RecorderWindow>();
             if (!recorderWindow)

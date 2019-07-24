@@ -387,17 +387,27 @@ class ImageSequenceAsset(GenericAsset):
         if publishReviewable:
             componentName = "reviewable_asset"
             publishedComponents = []
-            temporaryPath = "{0}.mp4".format(published_file_path)
+            componentPath = "{0}.mp4".format(published_file_path)
 
             publishedComponents.append(
                 FTComponent(
                     componentname=componentName,
-                    path=temporaryPath
+                    path=componentPath
                 )
             )
             return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
         else:
-            return None, "Publishing Image Sequence"
+            componentName = "image_sequence"
+            publishedComponents = []
+            componentPath = "{0}%04d.png [20-25]".format(published_file_path.split("<Frame>")[0])
+            UnityEngine().Debug.LogWarning("Component path: " + componentPath)
+            publishedComponents.append(
+                FTComponent(
+                    componentname=componentName,
+                    path=componentPath
+                )
+            )
+            return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
