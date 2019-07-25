@@ -12,11 +12,12 @@ namespace UnityEditor.ftrack
         [InitializeOnLoadMethod]
         private static void OnReload()
         {
+            s_filename = "frame.<Frame>";
+            s_lockFileName = ".ImageRecordTimeline.lock";
             if (IsRecording)
             {
                 EditorApplication.playModeStateChanged += OnPlayModeStateChange;
             }
-            s_filename = "frame.<Frame>";
         }
     }
 
@@ -27,11 +28,12 @@ namespace UnityEditor.ftrack
         [InitializeOnLoadMethod]
         private static void OnReload()
         {
+            s_filename = "reviewable";
+            s_lockFileName = ".MovieRecordTimeline.lock";
             if (IsRecording)
             {
                 EditorApplication.playModeStateChanged += OnPlayModeStateChange;
             }
-            s_filename = "reviewable";
         }
     }
 
@@ -40,6 +42,7 @@ namespace UnityEditor.ftrack
         private static string s_origFilePath = null;
         private static RecorderSettings s_recorderSettings = null;
         protected static string s_filename = "test";
+        protected static string s_lockFileName = ".RecordTimeline.lock";
 
         public static void Record()
         {
@@ -61,24 +64,24 @@ namespace UnityEditor.ftrack
             StartRecording();
         }
 
-        private static string lockFilePath = GetTempFolderPath() + ".RecordTimeline.lock";
+        private static string LockFilePath { get { return GetTempFolderPath() + s_lockFileName; } }
         protected static bool IsRecording
         {
             get
             {
-                return System.IO.File.Exists(lockFilePath);
+                return System.IO.File.Exists(LockFilePath);
             }
             set
             {
                 if (value == true)
                 {
-                    System.IO.File.Create(lockFilePath);
+                    System.IO.File.Create(LockFilePath);
                 }
                 else
                 {
-                    if (System.IO.File.Exists(lockFilePath))
+                    if (System.IO.File.Exists(LockFilePath))
                     {
-                        System.IO.File.Delete(lockFilePath);
+                        System.IO.File.Delete(LockFilePath);
                     }
                 }
             }
@@ -91,13 +94,10 @@ namespace UnityEditor.ftrack
         /// <returns>The path</returns>
         private static string GetTempFilePath()
         {
-            // store to a temporary path, to delete after publish
-            var tempPath = System.IO.Path.GetTempPath();
-
-            // TODO: what should the name of the video file be?
-            tempPath = System.IO.Path.Combine(tempPath, UnityEngine.Application.productName);
-
-            return tempPath + "/" + s_filename;
+            // Note: not combining using System.IO.Path as an error is raised
+            //       because <> characters are not permitted in paths, although they
+            //       are required for recording image sequences.
+            return GetTempFolderPath() + "/" + s_filename;
         }
 
         private static string GetTempFolderPath()

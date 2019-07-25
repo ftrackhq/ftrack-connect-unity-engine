@@ -418,7 +418,6 @@ class ImageSequenceAsset(GenericAsset):
                 published_file_path.split("<Frame>")[0],
                 frameStart,
                 frameEnd)
-            UnityEngine().Debug.LogWarning("Component path: " + componentPath)
             publishedComponents.append(
                 FTComponent(
                     componentname=componentName,
