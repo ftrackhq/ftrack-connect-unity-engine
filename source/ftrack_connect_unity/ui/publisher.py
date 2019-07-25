@@ -242,9 +242,14 @@ class FtrackPublishDialog(QtWidgets.QDialog):
             session = ftrack_api.Session()
             for componentNumber, ftComponent in enumerate(publishedComponents):
                 path = ftComponent.path  # HelpFunctions.safeString(ftComponent.path)
-                location = Connector.pickLocation(copyFiles=True) 
+                location = Connector.pickLocation(copyFiles=True)
                 try:
-                    ftrack.Review.makeReviewable(assetVersion, path)
+                    publishReviewable = options.get('publishReviewable')
+                    if publishReviewable:
+                        ftrack.Review.makeReviewable(assetVersion, path)
+                    else:
+                        assetVersion.createComponent(
+                            name=ftComponent.componentname, path=path)
                     assetVersion.publish()
                 except Exception as error:
                     logging.error(str(error))

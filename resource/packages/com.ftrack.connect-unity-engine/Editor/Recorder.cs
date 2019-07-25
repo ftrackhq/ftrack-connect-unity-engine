@@ -16,7 +16,7 @@ namespace UnityEditor.ftrack
             {
                 EditorApplication.playModeStateChanged += OnPlayModeStateChange;
             }
-            s_filename = "frame_<Frame>";
+            s_filename = "frame.<Frame>";
         }
     }
 
@@ -49,12 +49,7 @@ namespace UnityEditor.ftrack
 
             RecorderPath = GetTempFilePath();
 
-            // Delete the temp file if it already exists
-            /*string fullFilePath = RecorderPath + ".mp4";
-            if (System.IO.File.Exists(fullFilePath))
-            {
-                System.IO.File.Delete(fullFilePath);
-            }*/
+            // Delete the temp folder if it already exists
             string folderPath = System.IO.Directory.GetParent(RecorderPath.Replace('<', '_').Replace('>', '_')).FullName;
             if (System.IO.Directory.Exists(folderPath))
             {

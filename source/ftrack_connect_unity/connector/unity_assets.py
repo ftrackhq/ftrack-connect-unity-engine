@@ -40,8 +40,7 @@ class GenericAsset(FTAssetType):
         # Apply the right settings to the importer
         self._apply_settings_on_model_importer(iAObj, model_importer)
         model_importer.SaveAndReimport()
-
-        
+ 
     def changeVersion(self, iAObj=None, applicationObject=None):
         '''
         Change the version of the asset defined in *iAObj*
@@ -235,14 +234,15 @@ class GenericAsset(FTAssetType):
                 "This asset already exists in the project!\n" +
                 "Do you want to reimport this asset?",
                 "Yes", "No")
-            
+
             if not result:
                 return None
-        
+
         try:
             shutil.copy2(src_file, dst_file)
         except IOError as e:
-            error_string = 'ftrack could not copy "{}" into "{}": {}'.format(src_file, dst_file, e)
+            error_string = 'ftrack could not copy "{}" into "{}": {}'.format(
+                src_file, dst_file, e)
             Logger.error(error_string)
 
             # Also log to the Unity console
@@ -251,23 +251,26 @@ class GenericAsset(FTAssetType):
 
         # Refresh the asset database
         UnityEditor().AssetDatabase.Refresh()
-        
+
         # Add the ftrack metadata to the model importer
-        # The Asset Importer expects a path using forward slashes and starting 
+        # The Asset Importer expects a path using forward slashes and starting
         # with 'Assets/'
         model_importer_path = dst_file
-        model_importer_path = model_importer_path.replace('\\','/')
-        model_importer_path = model_importer_path[model_importer_path.find('/Assets')+1:]
-        
-        model_importer = UnityEditor().AssetImporter.GetAtPath(model_importer_path)
+        model_importer_path = model_importer_path.replace('\\', '/')
+        model_importer_path = model_importer_path[
+            model_importer_path.find('/Assets')+1:]
+
+        model_importer = UnityEditor().AssetImporter.GetAtPath(
+            model_importer_path)
         if not model_importer:
-            error_string = 'Could not find the asset importer for {}'.format(model_importer_path)
+            error_string = 'Could not find the asset importer for {}'.format(
+                model_importer_path)
             Logger.error(error_string)
 
             # Also log to the Unity console
             UnityEngine().Debug.LogError(error_string)
             return None
-        
+
         json_data = {
             'assetName'                    : iAObj.assetName,
             'assetType'                    : iAObj.assetType,
@@ -281,10 +284,11 @@ class GenericAsset(FTAssetType):
 
         model_importer.userData = json.dumps(json_data)
         model_importer.SaveAndReimport()
-        
-        debug_string = 'Imported {} ({} -> {})'.format(iAObj.assetName, src_file, dst_file)
+
+        debug_string = 'Imported {} ({} -> {})'.format(
+            iAObj.assetName, src_file, dst_file)
         Logger.debug(debug_string)
-        
+
         # Also log to the Unity console
         UnityEngine().Debug.Log(debug_string)
 
@@ -293,7 +297,8 @@ class GenericAsset(FTAssetType):
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         # Generic Assets do not modify the import options
         pass
-    
+
+
 class GeoAsset(GenericAsset):
     @classmethod
     def importOptions(cls):
@@ -308,9 +313,10 @@ class GeoAsset(GenericAsset):
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         model_importer.importMaterials = iAObj.options['unityImportMaterials']
 
-        # Force importing without animation. Users can always change this 
-        # directly in the ModelImporter Inspector panel 
+        # Force importing without animation. Users can always change this
+        # directly in the ModelImporter Inspector panel
         model_importer.importAnimation = False
+
 
 class AnimAsset(GenericAsset):
     @classmethod
@@ -325,10 +331,11 @@ class AnimAsset(GenericAsset):
 
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         model_importer.importAnimation = iAObj.options['unityImportAnim']
-        
-        # Force importing without materials. Users can always change this 
-        # directly in the ModelImporter Inspector panel 
+
+        # Force importing without materials. Users can always change this
+        # directly in the ModelImporter Inspector panel
         model_importer.importMaterials = False
+
 
 class RigAsset(GenericAsset):
     @classmethod
@@ -349,21 +356,23 @@ class RigAsset(GenericAsset):
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         anim_type = iAObj.options['unityAnimType']
         anim_type_switcher = {
-            "None" : UnityEditor().ModelImporterAnimationType.None,
-            "Legacy" : UnityEditor().ModelImporterAnimationType.Legacy,
-            "Generic" : UnityEditor().ModelImporterAnimationType.Generic,
-            "Human" : UnityEditor().ModelImporterAnimationType.Human
+            "None": UnityEditor().ModelImporterAnimationType.None,
+            "Legacy": UnityEditor().ModelImporterAnimationType.Legacy,
+            "Generic": UnityEditor().ModelImporterAnimationType.Generic,
+            "Human": UnityEditor().ModelImporterAnimationType.Human
         }
 
-        model_importer.animationType = anim_type_switcher.get(anim_type, UnityEditor().ModelImporterAnimationType.None)
-        
-        # Force importing without animation. Users can always change this 
-        # directly in the ModelImporter Inspector panel 
+        model_importer.animationType = anim_type_switcher.get(
+            anim_type, UnityEditor().ModelImporterAnimationType.None)
+
+        # Force importing without animation. Users can always change this
+        # directly in the ModelImporter Inspector panel
         model_importer.importAnimation = False
 
         # Force importing without materials. Users can always change this 
         # directly in the ModelImporter Inspector panel 
         model_importer.importMaterials = False
+
 
 class ImageSequenceAsset(GenericAsset):
     @classmethod
@@ -395,11 +404,20 @@ class ImageSequenceAsset(GenericAsset):
                     path=componentPath
                 )
             )
-            return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
+            return (publishedComponents,
+                    'Published ' + iAObj.assetType + ' asset')
         else:
             componentName = "image_sequence"
             publishedComponents = []
-            componentPath = "{0}%04d.png [20-25]".format(published_file_path.split("<Frame>")[0])
+
+            # try to get start and end frames from env
+            frameStart = os.environ.get("FS")
+            frameEnd = os.environ.get("FE")
+
+            componentPath = "{0}%04d.png [{1}-{2}]".format(
+                published_file_path.split("<Frame>")[0],
+                frameStart,
+                frameEnd)
             UnityEngine().Debug.LogWarning("Component path: " + componentPath)
             publishedComponents.append(
                 FTComponent(
@@ -407,7 +425,9 @@ class ImageSequenceAsset(GenericAsset):
                     path=componentPath
                 )
             )
-            return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
+            return (publishedComponents,
+                    'Published ' + iAObj.assetType + ' asset')
+
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
