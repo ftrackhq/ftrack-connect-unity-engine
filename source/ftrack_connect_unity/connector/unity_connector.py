@@ -17,7 +17,7 @@ import os
 import pprint
 
 # Install the ftrack logging handlers
-ftrack_connect.config.configure_logging('ftrack_connect_unity', level='DEBUG')
+ftrack_connect.config.configure_logging('ftrack_connect_unity')
 
 """
 Unity C# API access
