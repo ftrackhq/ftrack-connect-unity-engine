@@ -13,6 +13,7 @@ from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 import json
 import os
 import shutil
+import ast
 
 
 class GenericAsset(FTAssetType):
@@ -78,14 +79,17 @@ class GenericAsset(FTAssetType):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        componentName = "reviewable_asset"
+        file_paths_dict = ast.literal_eval(published_file_path)
         publishedComponents = []
-        temporaryPath = "{0}.mp4".format(published_file_path)
+        componentName = "reviewable_asset"
+        componentPath = "{0}.{1}".format(
+            file_paths_dict.get("movie_path"),
+            file_paths_dict.get("movie_ext"))
 
         publishedComponents.append(
             FTComponent(
                 componentname=componentName,
-                path=temporaryPath
+                path=componentPath
             )
         )
         return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
@@ -392,12 +396,14 @@ class ImageSequenceAsset(GenericAsset):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
+        file_paths_dict = ast.literal_eval(published_file_path)
         publishReviewable = iAObj.options.get('publishReviewable')
+        publishedComponents = []
         if publishReviewable:
             componentName = "reviewable_asset"
-            publishedComponents = []
             componentPath = "{0}.{1}".format(
-                published_file_path[0], published_file_path[1])
+                file_paths_dict.get("movie_path"),
+                file_paths_dict.get("movie_ext"))
 
             publishedComponents.append(
                 FTComponent(
@@ -405,32 +411,30 @@ class ImageSequenceAsset(GenericAsset):
                     path=componentPath
                 )
             )
-            return (publishedComponents,
-                    'Published ' + iAObj.assetType + ' asset')
-        else:
-            componentName = "image_sequence"
-            publishedComponents = []
 
-            # try to get start and end frames from env
-            frameStart = os.environ.get("FS")
-            frameEnd = os.environ.get("FE")
+        imgComponentName = "image_sequence"
 
-            # split published_file_path by <Frame>
-            file_path_tokens = published_file_path[0].split("<Frame>")
-            componentPath = "{0}%04d{1}.{2} [{3}-{4}]".format(
-                file_path_tokens[0],
-                file_path_tokens[1] if len(file_path_tokens) > 1 else '',
-                published_file_path[1],
-                frameStart,
-                frameEnd)
-            publishedComponents.append(
-                FTComponent(
-                    componentname=componentName,
-                    path=componentPath
-                )
+        # try to get start and end frames from env
+        frameStart = os.environ.get("FS")
+        frameEnd = os.environ.get("FE")
+
+        # split published_file_path by <Frame>
+        file_path_tokens = file_paths_dict.get(
+            "image_path").split("<Frame>")
+        imgComponentPath = "{0}%04d{1}.{2} [{3}-{4}]".format(
+            file_path_tokens[0],
+            file_path_tokens[1] if len(file_path_tokens) > 1 else '',
+            file_paths_dict.get("image_ext"),
+            frameStart,
+            frameEnd)
+        publishedComponents.append(
+            FTComponent(
+                componentname=imgComponentName,
+                path=imgComponentPath
             )
-            return (publishedComponents,
-                    'Published ' + iAObj.assetType + ' asset')
+        )
+        return (publishedComponents,
+                'Published ' + iAObj.assetType + ' asset')
 
 
 def registerAssetTypes():

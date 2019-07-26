@@ -163,8 +163,7 @@ class FtrackPublishDialog(QtWidgets.QDialog):
             return
 
         options = self.exportOptionsWidget.getOptions()
-        publishReviewable = options.get('publishReviewable')
-        if publishReviewable:
+        if assettype != "img":
             UnityEditor().ftrack.MovieRecorder.Record()
         else:
             UnityEditor().ftrack.ImageSequenceRecorder.Record()
@@ -241,18 +240,19 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         if publishedComponents:
             session = ftrack_api.Session()
             for componentNumber, ftComponent in enumerate(publishedComponents):
-                path = ftComponent.path  # HelpFunctions.safeString(ftComponent.path)
+                path = ftComponent.path
+                compName = ftComponent.componentname
                 location = Connector.pickLocation(copyFiles=True)
                 try:
-                    publishReviewable = options.get('publishReviewable')
-                    if publishReviewable:
+                    # TODO: find a better way to check if this is a reviewable
+                    if "reviewable" in compName:
                         ftrack.Review.makeReviewable(assetVersion, path)
                     else:
                         assetVersion.createComponent(
-                            name=ftComponent.componentname, path=path)
-                    assetVersion.publish()
+                            name=compName, path=path)
                 except Exception as error:
                     logging.error(str(error))
+            assetVersion.publish()
         else:
             self.exportOptionsWidget.setProgress(100)
 

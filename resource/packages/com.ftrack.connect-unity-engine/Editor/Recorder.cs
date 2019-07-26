@@ -6,6 +6,41 @@ using UnityEditor.Scripting.Python;
 namespace UnityEditor.ftrack
 {
     public class ImageSequenceRecorder : FtrackRecorder<ImageRecorderSettings> {
+        private static RecorderSettings s_movieRecorderSettings = null;
+        private static string s_origMovieFilePath = null;
+        private static readonly string s_movieFilename = "reviewable";
+
+        private static RecorderSettings MovieRecorderSettings
+        {
+            get
+            {
+                if (s_movieRecorderSettings == null)
+                {
+                    s_movieRecorderSettings = GetRecorder<MovieRecorderSettings>();
+                }
+                return s_movieRecorderSettings;
+            }
+        }
+
+        protected static string MovieRecorderPath
+        {
+            get {
+                if(MovieRecorderSettings == null)
+                {
+                    return null;
+                }
+                return MovieRecorderSettings.outputFile;
+            }
+            set
+            {
+                if(MovieRecorderSettings == null)
+                {
+                    return;
+                }
+                MovieRecorderSettings.outputFile = value;
+            }
+        }
+
         /// <summary>
         /// We must install the delegate on each domain reload
         /// </summary>
@@ -17,6 +52,75 @@ namespace UnityEditor.ftrack
             if (IsRecording)
             {
                 EditorApplication.playModeStateChanged += OnPlayModeStateChange;
+            }
+        }
+
+        public static void Record()
+        {
+            IsRecording = true;
+
+            s_origFilePath = RecorderPath;
+            RecorderPath = GetTempFilePath();
+            
+            s_origMovieFilePath = MovieRecorderPath;
+            MovieRecorderPath = System.IO.Path.Combine(GetTempFolderPath(), s_movieFilename);
+
+            // Delete the temp folder if it already exists
+            string folderPath = GetTempFolderPath();
+            if (System.IO.Directory.Exists(folderPath))
+            {
+                System.IO.Directory.Delete(folderPath, true);
+            }
+
+            EditorApplication.playModeStateChanged += OnPlayModeStateChange;
+
+            StartRecording();
+        }
+
+        protected static void OnPlayModeStateChange(PlayModeStateChange state)
+        {
+            if (IsRecording)
+            {
+                // Domain reloads lose the overriden Recorder path. We know a 
+                // domain reload occurred if m_origFilePath is not set (cleared 
+                // by a domain reload)
+                if (null == s_origFilePath)
+                {
+                    s_origFilePath = RecorderPath;
+                    RecorderPath = GetTempFilePath();
+                }
+
+                if(null == s_origMovieFilePath)
+                {
+                    s_origMovieFilePath = MovieRecorderPath;
+                    MovieRecorderPath = System.IO.Path.Combine(GetTempFolderPath(), s_movieFilename);
+                }
+
+                if (state == PlayModeStateChange.EnteredEditMode)
+                {
+                    // Publish with ftrack
+                    string publishArgs = null;
+                    if (MovieRecorderSettings == null)
+                    {
+                        publishArgs = string.Format(
+                            "{{'image_path':'{0}', 'image_ext':'{1}'}}",
+                            RecorderPath, RecorderSettings.extension);
+                    }
+                    else
+                    {
+                        publishArgs = string.Format(
+                            "{{'image_path':'{0}', 'image_ext':'{1}', 'movie_path':'{2}', 'movie_ext':'{3}'}}",
+                            RecorderPath, RecorderSettings.extension,
+                            MovieRecorderPath, MovieRecorderSettings.extension);
+                    }
+
+                    PythonRunner.CallServiceOnClient("'publish_callback'", string.Format("\"{0}\"", publishArgs));
+
+                    EditorApplication.playModeStateChanged -= OnPlayModeStateChange;
+                    RecorderPath = s_origFilePath;
+                    MovieRecorderPath = s_origMovieFilePath;
+                    IsRecording = false;
+                }
             }
         }
     }
@@ -35,14 +139,6 @@ namespace UnityEditor.ftrack
                 EditorApplication.playModeStateChanged += OnPlayModeStateChange;
             }
         }
-    }
-
-    public class FtrackRecorder<T> where T : RecorderSettings
-    {
-        private static string s_origFilePath = null;
-        private static RecorderSettings s_recorderSettings = null;
-        protected static string s_filename = "test";
-        protected static string s_lockFileName = ".RecordTimeline.lock";
 
         public static void Record()
         {
@@ -63,6 +159,41 @@ namespace UnityEditor.ftrack
 
             StartRecording();
         }
+
+        protected static void OnPlayModeStateChange(PlayModeStateChange state)
+        {
+            if (IsRecording)
+            {
+                // Domain reloads lose the overriden Recorder path. We know a 
+                // domain reload occurred if m_origFilePath is not set (cleared 
+                // by a domain reload)
+                if (null == s_origFilePath)
+                {
+                    s_origFilePath = RecorderPath;
+                    RecorderPath = GetTempFilePath();
+                }
+
+                if (state == PlayModeStateChange.EnteredEditMode)
+                {
+                    // Publish with ftrack
+                    PythonRunner.CallServiceOnClient("'publish_callback'", string.Format(
+                        "\"{{'movie_path':'{0}', 'movie_ext':'{1}'}}\"",
+                        RecorderPath, RecorderSettings.extension));
+
+                    EditorApplication.playModeStateChanged -= OnPlayModeStateChange;
+                    RecorderPath = s_origFilePath;
+                    IsRecording = false;
+                }
+            }
+        }
+    }
+
+    public class FtrackRecorder<T> where T : RecorderSettings
+    {
+        protected static string s_origFilePath = null;
+        private static RecorderSettings s_recorderSettings = null;
+        protected static string s_filename = "test";
+        protected static string s_lockFileName = ".RecordTimeline.lock";
 
         private static string LockFilePath { get { return GetTempFolderPath() + s_lockFileName; } }
         protected static bool IsRecording
@@ -92,7 +223,7 @@ namespace UnityEditor.ftrack
         /// e.g. %TEMP%\Unity_Project_Name for the Windows platform
         /// </summary>
         /// <returns>The path</returns>
-        private static string GetTempFilePath()
+        protected static string GetTempFilePath()
         {
             // Note: not combining using System.IO.Path as an error is raised
             //       because <> characters are not permitted in paths, although they
@@ -100,7 +231,7 @@ namespace UnityEditor.ftrack
             return GetTempFolderPath() + "/" + s_filename;
         }
 
-        private static string GetTempFolderPath()
+        protected static string GetTempFolderPath()
         {
             // store to a temporary path, to delete after publish
             var tempPath = System.IO.Path.GetTempPath();
@@ -109,31 +240,6 @@ namespace UnityEditor.ftrack
             tempPath = System.IO.Path.Combine(tempPath, UnityEngine.Application.productName);
 
             return tempPath;
-        }
-
-        protected static void OnPlayModeStateChange(PlayModeStateChange state)
-        {
-            if (IsRecording)
-            {
-                // Domain reloads lose the overriden Recorder path. We know a 
-                // domain reload occurred if m_origFilePath is not set (cleared 
-                // by a domain reload)
-                if (null == s_origFilePath)
-                {
-                    s_origFilePath = RecorderPath;
-                    RecorderPath = GetTempFilePath();
-                }
-
-                if (state == PlayModeStateChange.EnteredEditMode)
-                {
-                    // Publish with ftrack
-                    PythonRunner.CallServiceOnClient("'publish_callback'", string.Format("('{0}', '{1}')", RecorderPath, RecorderSettings.extension));
-
-                    EditorApplication.playModeStateChanged -= OnPlayModeStateChange;
-                    RecorderPath = s_origFilePath;
-                    IsRecording = false;
-                }
-            }
         }
 
         private static object GetFieldValue(string fieldName, object from)
@@ -148,13 +254,13 @@ namespace UnityEditor.ftrack
             return propInfo.GetValue(from);
         }
 
-        private static RecorderSettings RecorderSettings
+        protected static RecorderSettings RecorderSettings
         {
             get
             {
                 if (s_recorderSettings == null)
                 {
-                    s_recorderSettings = GetRecorder();
+                    s_recorderSettings = GetRecorder<T>();
                     if (s_recorderSettings == null)
                     {
                         UnityEngine.Debug.LogError("Could not find a valid MovieRecorder");
@@ -164,7 +270,7 @@ namespace UnityEditor.ftrack
             }
         }
 
-        private static string RecorderPath
+        protected static string RecorderPath
         {
             get { return RecorderSettings.outputFile; }
             set
@@ -173,7 +279,7 @@ namespace UnityEditor.ftrack
             }
         }
 
-        private static void StartRecording()
+        protected static void StartRecording()
         {
             var recorderWindow = EditorWindow.GetWindow<RecorderWindow>();
             if (!recorderWindow)
@@ -184,7 +290,7 @@ namespace UnityEditor.ftrack
             recorderWindow.StartRecording();
         }
 
-        private static RecorderSettings GetRecorder()
+        protected static RecorderSettings GetRecorder<U>() where U : RecorderSettings
         {
             var recorderWindow = EditorWindow.GetWindow<RecorderWindow>();
             if (!recorderWindow)
@@ -199,20 +305,20 @@ namespace UnityEditor.ftrack
             if (selectedRecorder != null)
             {
                 RecorderSettings recorderSettings = GetPropertyValue("settings", selectedRecorder, BindingFlags.Public | BindingFlags.Instance) as RecorderSettings;
-                if (recorderSettings.GetType().Equals(typeof(T)))
+                if (recorderSettings.GetType().Equals(typeof(U)))
                 {
                     // found movie recorder settings
-                    return recorderSettings as T;
+                    return recorderSettings as U;
                 }
             }
 
             var recorderList = GetFieldValue("m_RecordingListItem", recorderWindow);
             var itemList = (IEnumerable)GetPropertyValue("items", recorderList, BindingFlags.Public | BindingFlags.Instance);
-            T movieRecorder = null;
+            U movieRecorder = null;
             foreach (var item in itemList)
             {
                 RecorderSettings settings = GetPropertyValue("settings", item, BindingFlags.Public | BindingFlags.Instance) as RecorderSettings;
-                var recorder = settings as T;
+                var recorder = settings as U;
                 if (recorder == null)
                 {
                     continue;
