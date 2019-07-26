@@ -79,6 +79,8 @@ class GenericAsset(FTAssetType):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
+        # TODO (CEC-229): pass published_file_path as a dict
+        #                 instead of a string
         file_paths_dict = ast.literal_eval(published_file_path)
         publishedComponents = []
         componentName = "reviewable_asset"
@@ -396,6 +398,8 @@ class ImageSequenceAsset(GenericAsset):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
+        # TODO (CEC-229): pass published_file_path as a dict
+        #                 instead of a string
         file_paths_dict = ast.literal_eval(published_file_path)
         publishReviewable = iAObj.options.get('publishReviewable')
         publishedComponents = []
