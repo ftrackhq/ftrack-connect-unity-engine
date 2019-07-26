@@ -20,6 +20,7 @@ import os
 _menu_items = [
     ('Info', 'Info'),
     ('Import asset', 'Import asset'),
+    ('Publish', 'Publish'),
     ('Asset manager', 'Asset manager')
     ]
 

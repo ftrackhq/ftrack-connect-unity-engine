@@ -5,7 +5,8 @@
 import ftrack
 import ftrack_api
 import ftrack_connect_unity
-from ftrack_connect.connector import FTAssetType, FTAssetHandlerInstance
+from ftrack_connect.connector import (FTAssetType, FTAssetHandlerInstance,
+                                      FTComponent)
 from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 
 # misc
@@ -74,11 +75,21 @@ class GenericAsset(FTAssetType):
     
         return True
 
-    def publishAsset(self, iAObj=None):
+    def publishAsset(self, published_file_path, iAObj=None):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        Logger.debug('In Connector.publishAsset. Not implemented yet')
+        componentName = "reviewable_asset"
+        publishedComponents = []
+        temporaryPath = "{0}.mp4".format(published_file_path)
+
+        publishedComponents.append(
+            FTComponent(
+                componentname=componentName,
+                path=temporaryPath
+            )
+        )
+        return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
 
     @classmethod
     def importOptions(cls):
@@ -88,11 +99,24 @@ class GenericAsset(FTAssetType):
         # No option in the generic class
         return ''
     
+    @classmethod
+    def exportOptions(cls):
+        '''
+        Return export options for the component
+        '''
+        xml = """
+        <tab name="Options" accepts="unity">
+            <row name="Publish Reviewable" accepts="unity" enabled="False">
+                <option type="checkbox" name="publishReviewable" value="True"/>
+            </row>
+        </tab>"""
+        return xml
+
     def _get_asset_import_path(self, iAObj):
         ftrack_asset_version = ftrack.AssetVersion(iAObj.assetVersionId)
         task = ftrack_asset_version.getTask()
         task_links = ftrack_api.Session().query(
-            'select link from Task where name is "{0}"'.format(task.getName())
+            'select link from Task where id is "{0}"'.format(task.getId())
         ).first()['link']
         
         relative_path = ""
@@ -341,8 +365,23 @@ class RigAsset(GenericAsset):
         # directly in the ModelImporter Inspector panel 
         model_importer.importMaterials = False
 
+class ImageSequenceAsset(GenericAsset):
+    @classmethod
+    def exportOptions(cls):
+        '''
+        Return export options for the component
+        '''
+        xml = """
+        <tab name="Options" accepts="unity">
+            <row name="Publish Reviewable" accepts="unity" enabled="True">
+                <option type="checkbox" name="publishReviewable" value="False"/>
+            </row>
+        </tab>"""
+        return xml
+
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
     assetHandler.registerAssetType(name='anim', cls=AnimAsset)
     assetHandler.registerAssetType(name='geo', cls=GeoAsset)
     assetHandler.registerAssetType(name='rig', cls=RigAsset)
+    assetHandler.registerAssetType(name="img", cls=ImageSequenceAsset)
