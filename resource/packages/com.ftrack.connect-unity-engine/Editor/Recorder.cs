@@ -53,7 +53,7 @@ namespace UnityEditor.ftrack
             RecorderPath = GetTempFilePath();
 
             // Delete the temp folder if it already exists
-            string folderPath = System.IO.Directory.GetParent(RecorderPath.Replace('<', '_').Replace('>', '_')).FullName;
+            string folderPath = GetTempFolderPath();
             if (System.IO.Directory.Exists(folderPath))
             {
                 System.IO.Directory.Delete(folderPath, true);
@@ -127,7 +127,7 @@ namespace UnityEditor.ftrack
                 if (state == PlayModeStateChange.EnteredEditMode)
                 {
                     // Publish with ftrack
-                    PythonRunner.CallServiceOnClient("'publish_callback'", string.Format("'{0}'", RecorderPath));
+                    PythonRunner.CallServiceOnClient("'publish_callback'", string.Format("('{0}', '{1}')", RecorderPath, RecorderSettings.extension));
 
                     EditorApplication.playModeStateChanged -= OnPlayModeStateChange;
                     RecorderPath = s_origFilePath;

@@ -396,7 +396,8 @@ class ImageSequenceAsset(GenericAsset):
         if publishReviewable:
             componentName = "reviewable_asset"
             publishedComponents = []
-            componentPath = "{0}.mp4".format(published_file_path)
+            componentPath = "{0}.{1}".format(
+                published_file_path[0], published_file_path[1])
 
             publishedComponents.append(
                 FTComponent(
@@ -414,8 +415,12 @@ class ImageSequenceAsset(GenericAsset):
             frameStart = os.environ.get("FS")
             frameEnd = os.environ.get("FE")
 
-            componentPath = "{0}%04d.png [{1}-{2}]".format(
-                published_file_path.split("<Frame>")[0],
+            # split published_file_path by <Frame>
+            file_path_tokens = published_file_path[0].split("<Frame>")
+            componentPath = "{0}%04d{1}.{2} [{3}-{4}]".format(
+                file_path_tokens[0],
+                file_path_tokens[1] if len(file_path_tokens) > 1 else '',
+                published_file_path[1],
                 frameStart,
                 frameEnd)
             publishedComponents.append(
