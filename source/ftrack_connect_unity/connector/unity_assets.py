@@ -13,6 +13,7 @@ from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 import json
 import os
 import shutil
+import ast
 
 
 class GenericAsset(FTAssetType):
@@ -40,8 +41,7 @@ class GenericAsset(FTAssetType):
         # Apply the right settings to the importer
         self._apply_settings_on_model_importer(iAObj, model_importer)
         model_importer.SaveAndReimport()
-
-        
+ 
     def changeVersion(self, iAObj=None, applicationObject=None):
         '''
         Change the version of the asset defined in *iAObj*
@@ -79,14 +79,19 @@ class GenericAsset(FTAssetType):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        componentName = "reviewable_asset"
+        # TODO (CEC-229): pass published_file_path as a dict
+        #                 instead of a string
+        file_paths_dict = ast.literal_eval(published_file_path)
         publishedComponents = []
-        temporaryPath = "{0}.mp4".format(published_file_path)
+        componentName = "reviewable_asset"
+        componentPath = "{0}.{1}".format(
+            file_paths_dict.get("movie_path"),
+            file_paths_dict.get("movie_ext"))
 
         publishedComponents.append(
             FTComponent(
                 componentname=componentName,
-                path=temporaryPath
+                path=componentPath
             )
         )
         return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
@@ -235,14 +240,15 @@ class GenericAsset(FTAssetType):
                 "This asset already exists in the project!\n" +
                 "Do you want to reimport this asset?",
                 "Yes", "No")
-            
+
             if not result:
                 return None
-        
+
         try:
             shutil.copy2(src_file, dst_file)
         except IOError as e:
-            error_string = 'ftrack could not copy "{}" into "{}": {}'.format(src_file, dst_file, e)
+            error_string = 'ftrack could not copy "{}" into "{}": {}'.format(
+                src_file, dst_file, e)
             Logger.error(error_string)
 
             # Also log to the Unity console
@@ -251,23 +257,26 @@ class GenericAsset(FTAssetType):
 
         # Refresh the asset database
         UnityEditor().AssetDatabase.Refresh()
-        
+
         # Add the ftrack metadata to the model importer
-        # The Asset Importer expects a path using forward slashes and starting 
+        # The Asset Importer expects a path using forward slashes and starting
         # with 'Assets/'
         model_importer_path = dst_file
-        model_importer_path = model_importer_path.replace('\\','/')
-        model_importer_path = model_importer_path[model_importer_path.find('/Assets')+1:]
-        
-        model_importer = UnityEditor().AssetImporter.GetAtPath(model_importer_path)
+        model_importer_path = model_importer_path.replace('\\', '/')
+        model_importer_path = model_importer_path[
+            model_importer_path.find('/Assets')+1:]
+
+        model_importer = UnityEditor().AssetImporter.GetAtPath(
+            model_importer_path)
         if not model_importer:
-            error_string = 'Could not find the asset importer for {}'.format(model_importer_path)
+            error_string = 'Could not find the asset importer for {}'.format(
+                model_importer_path)
             Logger.error(error_string)
 
             # Also log to the Unity console
             UnityEngine().Debug.LogError(error_string)
             return None
-        
+
         json_data = {
             'assetName'                    : iAObj.assetName,
             'assetType'                    : iAObj.assetType,
@@ -281,10 +290,11 @@ class GenericAsset(FTAssetType):
 
         model_importer.userData = json.dumps(json_data)
         model_importer.SaveAndReimport()
-        
-        debug_string = 'Imported {} ({} -> {})'.format(iAObj.assetName, src_file, dst_file)
+
+        debug_string = 'Imported {} ({} -> {})'.format(
+            iAObj.assetName, src_file, dst_file)
         Logger.debug(debug_string)
-        
+
         # Also log to the Unity console
         UnityEngine().Debug.Log(debug_string)
 
@@ -293,7 +303,8 @@ class GenericAsset(FTAssetType):
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         # Generic Assets do not modify the import options
         pass
-    
+
+
 class GeoAsset(GenericAsset):
     @classmethod
     def importOptions(cls):
@@ -308,9 +319,10 @@ class GeoAsset(GenericAsset):
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         model_importer.importMaterials = iAObj.options['unityImportMaterials']
 
-        # Force importing without animation. Users can always change this 
-        # directly in the ModelImporter Inspector panel 
+        # Force importing without animation. Users can always change this
+        # directly in the ModelImporter Inspector panel
         model_importer.importAnimation = False
+
 
 class AnimAsset(GenericAsset):
     @classmethod
@@ -325,10 +337,11 @@ class AnimAsset(GenericAsset):
 
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         model_importer.importAnimation = iAObj.options['unityImportAnim']
-        
-        # Force importing without materials. Users can always change this 
-        # directly in the ModelImporter Inspector panel 
+
+        # Force importing without materials. Users can always change this
+        # directly in the ModelImporter Inspector panel
         model_importer.importMaterials = False
+
 
 class RigAsset(GenericAsset):
     @classmethod
@@ -349,21 +362,23 @@ class RigAsset(GenericAsset):
     def _apply_settings_on_model_importer(self, iAObj, model_importer):
         anim_type = iAObj.options['unityAnimType']
         anim_type_switcher = {
-            "None" : UnityEditor().ModelImporterAnimationType.None,
-            "Legacy" : UnityEditor().ModelImporterAnimationType.Legacy,
-            "Generic" : UnityEditor().ModelImporterAnimationType.Generic,
-            "Human" : UnityEditor().ModelImporterAnimationType.Human
+            "None": UnityEditor().ModelImporterAnimationType.None,
+            "Legacy": UnityEditor().ModelImporterAnimationType.Legacy,
+            "Generic": UnityEditor().ModelImporterAnimationType.Generic,
+            "Human": UnityEditor().ModelImporterAnimationType.Human
         }
 
-        model_importer.animationType = anim_type_switcher.get(anim_type, UnityEditor().ModelImporterAnimationType.None)
-        
-        # Force importing without animation. Users can always change this 
-        # directly in the ModelImporter Inspector panel 
+        model_importer.animationType = anim_type_switcher.get(
+            anim_type, UnityEditor().ModelImporterAnimationType.None)
+
+        # Force importing without animation. Users can always change this
+        # directly in the ModelImporter Inspector panel
         model_importer.importAnimation = False
 
         # Force importing without materials. Users can always change this 
         # directly in the ModelImporter Inspector panel 
         model_importer.importMaterials = False
+
 
 class ImageSequenceAsset(GenericAsset):
     @classmethod
@@ -378,6 +393,53 @@ class ImageSequenceAsset(GenericAsset):
             </row>
         </tab>"""
         return xml
+
+    def publishAsset(self, published_file_path, iAObj=None):
+        '''
+        Publish the asset defined by the provided *iAObj*.
+        '''
+        # TODO (CEC-229): pass published_file_path as a dict
+        #                 instead of a string
+        file_paths_dict = ast.literal_eval(published_file_path)
+        publishReviewable = iAObj.options.get('publishReviewable')
+        publishedComponents = []
+        if publishReviewable:
+            componentName = "reviewable_asset"
+            componentPath = "{0}.{1}".format(
+                file_paths_dict.get("movie_path"),
+                file_paths_dict.get("movie_ext"))
+
+            publishedComponents.append(
+                FTComponent(
+                    componentname=componentName,
+                    path=componentPath
+                )
+            )
+
+        imgComponentName = "image_sequence"
+
+        # try to get start and end frames from env
+        frameStart = os.environ.get("FS")
+        frameEnd = os.environ.get("FE")
+
+        # split published_file_path by <Frame>
+        file_path_tokens = file_paths_dict.get(
+            "image_path").split("<Frame>")
+        imgComponentPath = "{0}%04d{1}.{2} [{3}-{4}]".format(
+            file_path_tokens[0],
+            file_path_tokens[1] if len(file_path_tokens) > 1 else '',
+            file_paths_dict.get("image_ext"),
+            frameStart,
+            frameEnd)
+        publishedComponents.append(
+            FTComponent(
+                componentname=imgComponentName,
+                path=imgComponentPath
+            )
+        )
+        return (publishedComponents,
+                'Published ' + iAObj.assetType + ' asset')
+
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()

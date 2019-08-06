@@ -161,7 +161,12 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         if not assettype:
             self.showWarning('Missing assetType', 'assetType can not be blank')
             return
-        UnityEditor().ftrack.Recorder.Record()
+
+        options = self.exportOptionsWidget.getOptions()
+        if assettype != "img":
+            UnityEditor().ftrack.MovieRecorder.Record()
+        else:
+            UnityEditor().ftrack.ImageSequenceRecorder.Record()
         self.exportOptionsWidget.setProgress(25)
 
     def publishAsset(self, published_file_path):
@@ -235,13 +240,19 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         if publishedComponents:
             session = ftrack_api.Session()
             for componentNumber, ftComponent in enumerate(publishedComponents):
-                path = ftComponent.path  # HelpFunctions.safeString(ftComponent.path)
-                location = Connector.pickLocation(copyFiles=True) 
+                path = ftComponent.path
+                compName = ftComponent.componentname
+                location = Connector.pickLocation(copyFiles=True)
                 try:
-                    ftrack.Review.makeReviewable(assetVersion, path)
-                    assetVersion.publish()
+                    # TODO: find a better way to check if this is a reviewable
+                    if "reviewable" in compName:
+                        ftrack.Review.makeReviewable(assetVersion, path)
+                    else:
+                        assetVersion.createComponent(
+                            name=compName, path=path)
                 except Exception as error:
                     logging.error(str(error))
+            assetVersion.publish()
         else:
             self.exportOptionsWidget.setProgress(100)
 
