@@ -69,6 +69,9 @@ class BuildPlugin(Command):
             PACKAGES_PATH,
             os.path.join(STAGING_PATH, 'resources', 'packages')
         )
+        
+        # Copy readme file
+        shutil.copyfile(README_PATH, os.path.join(STAGING_PATH, 'README.md'))
 
         # Install local dependencies
         pip_main(
