@@ -12,12 +12,12 @@ The package does not work with Python 3.
 1. From a cmd prompt, type `python` and make sure the installed Python can be 
 discovered. If not, adjust your `%PATH%` environment variable to include the path
 where Python.exe resides.
-1. In the Python interpreter, type the following code and make sure the returned value matches the directory where you installed Python: 
-``` 
->>> import sys 
->>> print sys.executable 
-``` 
-1. Quit the interpreter by typing
+1. In the Python interpreter, type the following code and make sure the returned value matches the directory where you installed Python:
+```
+>>> import sys
+>>> print sys.executable
+```
+Quit the interpreter by typing
 ```
 >>> quit()
 ```
