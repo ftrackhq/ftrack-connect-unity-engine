@@ -1,8 +1,7 @@
 # Limitations
 The ftrack plug-in for Unity is only supported on Windows platforms.
 Supported versions of Unity:
-* 2018 LTS Release(Currently 2018.3)
-* 2019 Release (Currently 2019.1)
+* 2019.3 Release
 
 # Installation
 
@@ -54,6 +53,7 @@ select `Add package from disk...`
 
 The ftrack package is accessible from a Git URL:
 
+1. Make sure you have Git installed. You can download it from [here](https://git-scm.com/download/win)
 1. In the Package Manager window, locate the `+` sign, click on it, then 
 select `Add package from git URL...`
 1. Enter the following URL: `https://bitbucket.org/ftrack/ftrack-connect-unity-plugin.git`
