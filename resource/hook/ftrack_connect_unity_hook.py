@@ -172,7 +172,23 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                 self._discover_located_editors(all_applications)
                 self._discover_secondary_installations(all_applications)
                 self._discover_standard_paths(all_applications)
-                            
+
+        elif 'linux' in sys.platform:
+            prefix = os.environ['HOME'].split(os.path.sep)[1:]
+            prefix.insert(0, '/')
+            prefix.extend(['Unity', 'Hub', 'Editor', '2.+'])
+            print 'prefix', prefix
+            all_applications.extend(self._searchFilesystem(
+                expression=prefix + ['Editor', 'Unity$'],
+                versionExpression=r'(?P<version>\d[\d.a-z]*?)[^\d]*$',
+                label='Unity',
+                applicationIdentifier='unity_{version}',
+                icon='unity',
+                variant='{version}'
+            ))
+
+        print all_applications
+
         # Remove:
         #   * paths that do not exist 
         #   * duplicate paths
