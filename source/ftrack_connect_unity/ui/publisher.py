@@ -16,7 +16,7 @@ from ftrack_connect.ui.theme import applyTheme
 from ftrack_connect.ui.widget.context_selector import ContextSelector
 from ftrack_connect_unity.ui.export_asset_options_widget import ExportAssetOptionsWidget
 from ftrack_connect_unity.ui.export_options_widget import ExportOptionsWidget
-from ftrack_connect_unity.connector.unity_connector import Connector, UnityEditor, UnityEngine
+from ftrack_connect_unity.connector.unity_connector import Connector, GetUnityEditor
 
 
 class FtrackPublishDialog(QtWidgets.QDialog):
@@ -164,9 +164,9 @@ class FtrackPublishDialog(QtWidgets.QDialog):
 
         options = self.exportOptionsWidget.getOptions()
         if assettype != "img":
-            UnityEditor().ftrack.MovieRecorder.Record()
+            GetUnityEditor().Ftrack.MovieRecorder.Record()
         else:
-            UnityEditor().ftrack.ImageSequenceRecorder.Record()
+            GetUnityEditor().Ftrack.ImageSequenceRecorder.Record()
         self.exportOptionsWidget.setProgress(25)
 
     def publishAsset(self, published_file_path):

@@ -88,6 +88,13 @@ editor. If we find the default editor we make it the first item of the
 list. 
 ```
 
+## Sporadic 30 seconds lag
+There is a known, sporadic issue with the Python for Unity package where there
+might be a 30 seconds delay between the time an operation is launched and when 
+it is actually processed. This can happen, for example, when accessing the ftrack
+menu items. The desired dialog might take 30 seconds before being displayed when
+the issue arises.
+
 ## Unity 2019 and higher
 When launching Unity 2019 and higher from ftrack-connect, the Unity Hub will 
 appear. There is a limitation with the 

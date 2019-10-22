@@ -64,7 +64,7 @@ class BuildPlugin(Command):
             os.path.join(STAGING_PATH, 'resources', 'scripts')
         )
 
-        # Copy plugin
+        # Copy Unity packages
         shutil.copytree(
             PACKAGES_PATH,
             os.path.join(STAGING_PATH, 'resources', 'packages')

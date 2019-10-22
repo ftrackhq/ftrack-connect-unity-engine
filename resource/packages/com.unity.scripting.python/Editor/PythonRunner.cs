@@ -1,9 +1,12 @@
-﻿using UnityEditor;
+using UnityEditor;
 using UnityEngine;
 using Python.Runtime;
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Collections;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace UnityEditor.Scripting.Python
 {
@@ -13,19 +16,31 @@ namespace UnityEditor.Scripting.Python
     /// </summary>
     public class PythonInstallException : System.Exception
     {
-        public PythonInstallException() : base() { }
+        /// <summary>
+        /// Constructor with message
+        /// </summary>
+        /// <param name="msg">The message of the exception</param>
         public PythonInstallException(string msg) : base(msg) { }
-        public PythonInstallException(string msg, Exception innerException) : base(msg, innerException) { }
-        protected PythonInstallException(System.Runtime.Serialization.SerializationInfo info,
-            System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
 
+        /// <summary>
+        /// Constructor with message and the exception that triggered this exception
+        /// </summary>
+        /// <param name="msg">The message of the exception</param>
+        /// <param name="innerException">The exception that triggered this exception</param>
+        public PythonInstallException(string msg, Exception innerException) : base(msg, innerException) { }
+
+        /// <summary>
+        /// The exception's string
+        /// </summary>
         public override string Message => $"Python Net: {base.Message}\nPlease check the Python Net package documentation for the install troubleshooting instructions.";
     }
 
+    /// <summary>
+    /// This class encapsulates methods to run Python strings, files and
+    /// clients inside of Unity.
+    /// </summary>
     public static class PythonRunner
     {
-        const string ImportServerString = "from unity_rpyc import unity_server as unity_server\n";
-
         /// <summary>
         /// The Python version we require.
         ///
@@ -33,10 +48,15 @@ namespace UnityEditor.Scripting.Python
         /// </summary>
         public const string PythonRequiredVersion = "2.7";
 
+        /// <summary>
+        /// The version of the in-process Python interpreter.
+        /// </summary>
+        /// <value>A string representing the version.</value>
         public static string InProcessPythonVersion
         {
             get
             {
+                EnsureInProcessInitialized();
                 using (Py.GIL())
                 {
                     dynamic sys = PythonEngine.ImportModule("sys");
@@ -46,7 +66,7 @@ namespace UnityEditor.Scripting.Python
         }
 
         /// <summary>
-        /// Runs Python code in the Unity process
+        /// Runs Python code in the Unity process.
         /// </summary>
         /// <param name="pythonCodeToExecute">The code to execute.</param>
         public static void RunString(string pythonCodeToExecute)
@@ -54,22 +74,12 @@ namespace UnityEditor.Scripting.Python
             EnsureInProcessInitialized();
             using (Py.GIL ())
             {
-                try
-                {
-                    PythonEngine.Exec(pythonCodeToExecute);
-                }
-                catch (PythonException e)
-                {
-                    string msg = e.ToString();
-                    string stacktrace = e.StackTrace.Replace("\\n", "\n");
-                    Debug.LogError($"{msg}\npython stack: {stacktrace}");
-                    throw;
-                }
+                PythonEngine.Exec(pythonCodeToExecute);
             }
         }
 
         /// <summary>
-        /// Runs a Python script in the Unity process
+        /// Runs a Python script in the Unity process.
         /// </summary>
         /// <param name="pythonFileToExecute">The script to execute.</param>
         public static void RunFile(string pythonFileToExecute)
@@ -80,6 +90,9 @@ namespace UnityEditor.Scripting.Python
                 throw new System.ArgumentNullException("pythonFileToExecute", "Invalid (null) file path");
             }
 
+            // Ensure we are getting the full path.
+            pythonFileToExecute = Path.GetFullPath(pythonFileToExecute);
+
             // Forward slashes please
             pythonFileToExecute = pythonFileToExecute.Replace("\\","/");
             if (!File.Exists (pythonFileToExecute))
@@ -89,133 +102,376 @@ namespace UnityEditor.Scripting.Python
 
             using (Py.GIL ())
             {
-                try
-                {
-                    PythonEngine.Exec(string.Format("execfile('{0}')", pythonFileToExecute));
-                }
-                catch (PythonException e)
-                {
-                    string msg = e.ToString();
-                    string stacktrace = e.StackTrace.Replace("\\n", "\n");
-                    Debug.LogError($"{msg}\npython stack: {stacktrace}");
-                    throw;
-                }
+                PythonEngine.Exec(string.Format("execfile('{0}')", pythonFileToExecute));
             }
         }
 
         /// <summary>
-        /// Starts the Unity server (rpyc)
+        /// When Unity starts up the domain relaods multiple times, but only
+        /// after the "last one" when Unity becomes ready that EditorApplication.update
+        /// is called. Use this to know we're good to go.
         /// </summary>
-        /// <param name="clientInitModulePath">Optional path to the client init module that should be used when the Unity client starts.</param>
-        public static void StartServer(string clientInitModulePath = null)
+        [InitializeOnLoadMethod]
+        static void Initialize()
         {
-            EnsureOutOfProcessInitialized();
-
-            string clientInitPathString;
-            if (clientInitModulePath != null)
-            {
-                clientInitModulePath = clientInitModulePath.Replace("\\","/");
-                clientInitPathString = string.Format("'{0}'",clientInitModulePath);
-            }
-            else
-            {
-                clientInitPathString = "None";
-            }
-
-            // Start the server. Might throw.
-            // TODO: run this with dynamic variables instead of a RunString, to
-            // avoid needing to quote clientInitPathString.
-            string serverCode = $"{ImportServerString}\n" +
-                $"unity_server.start({clientInitPathString})\n";
-            RunString(serverCode);
-
-            // We need to stop the server on Python shutdown
-            // (which is triggered by domain unload)
-            PythonEngine.AddShutdownHandler(OnPythonShutdown);
+            EditorApplication.delayCall += DoInitialization;
         }
 
-        /// <summary>
-        /// Stops the Unity server
-        /// </summary>
-        /// <param name="terminateClient">Also terminates the client process. Default is false</param>
-        public static void StopServer(bool terminateClient = false)
+        static void DoInitialization()
         {
-            EnsureOutOfProcessInitialized();
-            // TODO: run this with dynamic variables
-            string serverCode = ImportServerString + string.Format(@"unity_server.stop({0})", terminateClient ? "True" : "False");
-            RunString(serverCode);
+            // Do once, then remove self.
+            StartServer();
+#if UNITY_2019_1_OR_NEWER
+            // Add stream redirection for the console
+            RunFile("Packages/com.unity.scripting.python/Python/site-packages/redirecting_stdout.py");
+#endif
         }
 
         /// <summary>
-        /// Runs Python code on the Python client
+        /// Starts the Python server and the job-processing loop. Calling this 
+        /// is idempotent: if the server has already started, this call has no 
+        /// effect.
         /// </summary>
-        /// <param name="pythonCodeToExecute">The code to execute.</param>
-        public static void RunStringOnClient(string pythonCodeToExecute)
+        public static void StartServer()
         {
             EnsureOutOfProcessInitialized();
             using (Py.GIL())
             {
-                try
+                dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+                server_module.start_server();
+            }
+            EditorApplication.update += OnUpdate;
+            EditorApplication.quitting += OnQuit;
+            PythonEngine.AddShutdownHandler(OnReload);
+        }
+
+        /// <summary>
+        /// Stops the Python server and the job processing loop. Calling this is
+        /// idempotent: if the server is already closed, this call has no effect.
+        /// </summary>
+        /// <param name="inviteReconnect">If true, signal the clients the server 
+        /// will be restarted.</param>
+        [PyGIL]
+        public static void StopServer(bool inviteReconnect)
+        {
+            EditorApplication.update -= OnUpdate;
+            EditorApplication.quitting -= OnQuit;
+            PythonEngine.RemoveShutdownHandler(OnReload);
+
+            dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+            server_module.close_server(inviteReconnect);
+        }
+
+        /// <summary>
+        /// Tests if a client is connected to the server.
+        /// </summary>
+        /// <param name="clientName">The name of the client.</param>
+        /// <returns>True if the client is connected, False otherwise.</returns>
+        public static bool IsClientConnected(string clientName)
+        {
+            return NumClientsConnected(clientName) != 0;
+        }
+
+        /// <summary>
+        /// Returns the number of clients of the same name connected to the 
+        /// server.
+        /// </summary>
+        /// <param name="clientName">The name of the client.</param>
+        /// <returns>The number of clients connected.</returns>
+        public static int NumClientsConnected(string clientName)
+        {
+            EnsureInProcessInitialized();
+            using (Py.GIL())
+            {
+                dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+                return server_module.num_clients_connected(clientName);
+            }
+        }
+
+        /// <summary>
+        /// Returns the total number of clients connected to the server.
+        /// </summary>
+        /// <returns></returns>
+        public static int NumClientsConnected()
+        {
+            EnsureInProcessInitialized();
+            using (Py.GIL())
+            {
+                dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+                return server_module.get_total_connected_clients();
+            }
+        }
+
+        /// <summary>
+        /// Returns the names of the connected clients. If there are multiple 
+        /// instances of a client, returns only one copy of the name.
+        /// </summary>
+        /// <returns>An array of string that contains the connected clients.</returns>
+        [PyGIL]
+        public static string[] GetConnectedClients()
+        {
+            EnsureInProcessInitialized();
+            dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+            return server_module.get_connected_clients();
+        }
+
+        /// <summary>
+        /// Returns the version of RPyC currently in use.
+        /// </summary>
+        /// <returns>A human-readable string representing the version of RPyC.</returns>
+        [PyGIL]
+        public static string GetRPyCVersion()
+        {
+            EnsureInProcessInitialized();
+            dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+            string RPyCVersion = server_module.get_rpyc_version();
+            return RPyCVersion.Replace(',', '.');
+        }
+
+        [PyGIL]
+        internal static dynamic InternalCallOnClient(bool async, string clientName, string serviceName, params object[] args)
+        {
+            EnsureInProcessInitialized();
+            dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+            dynamic callable = async ? server_module.call_service_on_client_async : server_module.call_service_on_client;
+            if (args == null || args.Length == 0)
+            {
+                return callable(clientName, -1, serviceName);
+            }
+
+            dynamic builtins = PythonEngine.ImportModule("__builtin__");
+            dynamic pyArgs = builtins.list();
+            foreach(var arg in args)
+            {
+                if (arg is string)
                 {
-                    dynamic unity_server = PythonEngine.ImportModule("unity_rpyc.unity_server");
-                    unity_server.run_python_code_on_client(pythonCodeToExecute);
+                    pyArgs.append(new PyString((string)arg));
                 }
-                catch (PythonException e)
+                else
                 {
-                    string msg = e.ToString();
-                    string stacktrace = e.StackTrace.Replace("\\n", "\n");
-                    Debug.LogError($"{msg}\npython stack: {stacktrace}");
+                    pyArgs.append(arg);
+                }
+            }
+            return callable(clientName, -1, serviceName, pyArgs);
+        }
+
+        /// <summary>
+        /// Convenience function to call a service on a client.
+        ///
+        /// This is a wrapper around unity_python.server.server.call_service_on_client. If you want keyword
+        /// arguments, call the Python directly with:
+        ///
+        ///            dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+        ///            return server_module.call_service_on_client(clientName, 0, serviceName, args, kwargs);
+        ///
+        /// Where args is a tuple or list and kwargs is a dict.
+        /// </summary>
+        /// <param name="clientName">The name of the client to call the service on.</param>
+        /// <param name="serviceName">The name of the service to call.</param>
+        /// <param name="args">Arguments to be passed to the service. Must be basic
+        ///  types (strings, int, bool) or PyObject.</param>
+        /// <returns>Null if the service returns None (or has no explicit return),
+        ///  else a PyObject.</returns>
+        [PyGIL]
+        public static dynamic CallServiceOnClient(string clientName, string serviceName, params object[] args)
+        {
+            return InternalCallOnClient(async: false, clientName, serviceName, args);
+        }
+
+        /// <summary>
+        /// Convenience function to call a method on a client, asynchronously.
+        /// Call this if the client is expected to call back the server.
+        ///
+        /// Use as a coroutine in a GameObject:
+        /// StartCoroutine(PythonRunner.CallCoroutineServiceOnClient("foo", "bar"))
+        /// 
+        /// Or iterate over the enumerator in a Unity coroutine:
+        ///     var pycall = PythonRunner.CallCoroutineServiceOnClient("foo", "bar");
+        ///     while (pycall.MoveNext()) {
+        ///       yield return null; /* throws here if the result arrives and is an error */
+        ///     }
+        ///     /* do something with pycall.Current if we care about the return value */
+        ///
+        /// This is a wrapper around unity_python.server.server.call_service_on_client_async. If you want keyword
+        /// arguments, call the Python directly with:
+        ///
+        ///            dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+        ///            return server_module.call_service_on_client_async(clientName, 0, serviceName, args, kwargs);
+        ///
+        /// Where args is a tuple or list and kwargs is a dict.
+        /// </summary>
+        /// <param name="clientName">The name of the client to call the service on.</param>
+        /// <param name="serviceName">The name of the service to call.</param>
+        /// <param name="args">Arguments to be passed to the service. Must be basic
+        ///  types (strings, int, bool) or PyObject.</param>
+        /// <returns>An IEnumerator.</returns>
+        public static IEnumerator CallCoroutineServiceOnClient(string clientName, string serviceName, params object[] args)
+        {
+            dynamic iterator = InternalCallOnClient(async: true, clientName, serviceName, args);
+            bool done = false;
+            while(!done)
+            {
+                using (Py.GIL())
+                {
+                    done = iterator.ready;
+                }
+                if (!done)
+                {
+                    yield return null;
+                }
+            }
+
+            // Once here, we have a value or an exception.
+            PyObject returnValue;
+            using(Py.GIL())
+            {
+                // This will throw if it's an exception.
+                returnValue = iterator.value;
+            }
+            yield return returnValue;
+        }
+
+        /// <summary>
+        /// Task to be awaited for while the async request is done.
+        /// Usually used with the return value of CallCoroutineServiceOnClient, or to use a 
+        /// Unity coroutine with the async/await semantics.
+        /// </summary>
+        /// <param name="iter">The iterator to wait on.</param>
+        /// <returns>The awaited task.</returns>
+        private static Task<dynamic> AwaitOnIterator(IEnumerator iter, int pollingInterval = 20)
+        {
+            return Task.Factory.StartNew<dynamic>( () =>
+            {
+                bool moving = true;
+                while(moving)
+                {
+                    using (Py.GIL())
+                    {
+                        moving = iter.MoveNext();
+                    }
+                    Thread.Sleep(pollingInterval);
+                }
+                return iter.Current;
+            });
+        }
+
+        /// <summary>
+        /// Method to use with C# async/await semantics.
+        /// Call this if the client is expected to call back the server.
+        /// If the call to this method is not awaited, the execution of this method will
+        /// continue on its own.
+        /// </summary>
+        /// <param name="clientName">name of the client to make the call to.</param>
+        /// <param name="serviceName">name of the service to be called.</param>
+        /// <param name="args">the arguments to be passed on to the called service.</param>
+        /// <returns>The task that is the asynchronous call to the service. Wait for it to finish with Task.wait() or 
+        /// discard the return value if none is expected.</returns>
+        public static async Task<dynamic> CallAsyncServiceOnClient(string clientName, string serviceName, params object[] args)
+        {
+            return await AwaitOnIterator(CallCoroutineServiceOnClient(clientName, serviceName, args));
+        }
+
+        /// <summary>
+        /// OnUpdate callback called back during the Editor Idle events.
+        /// Used to process the Python jobs queue.
+        /// </summary>
+        [PyGIL]
+        static void OnUpdate()
+        {
+            EnsureInProcessInitialized();
+            dynamic server_module = PythonEngine.ImportModule("unity_python.server.server");
+            server_module.process_jobs();
+        }
+
+        /// <summary>
+        /// OnQuit callback called back when the Unity editor Quits. Disconnects
+        /// all clients with inviteReconnect set to false.
+        /// </summary>
+        static void OnQuit()
+        {
+            StopServer(inviteReconnect: false);
+        }
+
+        /// <summary>
+        /// OnReload callback called back when a domain reload is triggered. 
+        /// Disconnects all clients with inviteReconnect set to true.
+        /// </summary>
+        static void OnReload()
+        {
+            StopServer(inviteReconnect: true);
+        }
+
+        /// <summary>
+        /// Spawns a new client by launching a new Python interpreter and having it execute the file.
+        ///
+        /// Returns immediately after spawning the new Python process. If you need Unity to coordinate
+        /// with the client, you will need to wait for the client to connect to the Unity server.
+        /// If the client script fails to run, check the logs to see exactly what was executed and
+        /// try to run the script by hand in a shell terminal to find the errors.
+        ///
+        /// The Python interpreter chosen is the one in the Python Settings.
+        /// </summary>
+        /// <param name="file">The file to be executed.</param>
+        /// <param name="wantLogging">If true, turns on debug logging for the Python client startup.
+        ///  If false, silences all messages and errors during startup.</param>
+        /// <param name="arguments">The arguments to be passed to the script.</param>
+        /// <returns>The Popen Python object that is the newly spawned client.</returns>
+        public static dynamic SpawnClient(string file, bool wantLogging = true, params string[] arguments)
+        {
+            StartServer();
+            var args = new List<string>(arguments);
+            args.Insert(0, Path.GetFullPath(file));
+            Debug.Log($"[com.unity.scripting.python]: Starting {Path.GetFullPath(file)}");
+            using (Py.GIL())
+            {
+                dynamic unity_server = PythonEngine.ImportModule("unity_python.server.server");
+                dynamic process = unity_server.spawn_subpython(args,
+                        python_executable: PythonSettings.PythonInterpreter,
+                        wantLogging: wantLogging);
+                return process;
+            }
+        }
+
+        /// <summary>
+        /// Closes or reset a client by calling the "on_server_shutdown" service.
+        /// </summary>
+        /// <param name="clientName">The name of the client to close or reset.</param>
+        /// <param name="inviteRetry">If true, send on_server_shutdown(true). If false, send on_server_shutdown(false)</param>
+        public static void CloseClient(string clientName, bool inviteRetry = false)
+        {
+            try
+            {
+                CallServiceOnClient(clientName, "on_server_shutdown", inviteRetry);
+            }
+            catch (PythonException exc)
+            {
+                // EOF error is due to the client closing the port before we
+                // can read the reply. This is expected
+                if (!exc.Message.Contains("EOFError"))
+                {
                     throw;
                 }
             }
         }
 
         /// <summary>
-        /// Runs a Python script on the Python client
+        /// Waits at most `timeout` seconds for a client to be connected. To be
+        /// used as a Unity coroutine.
         /// </summary>
-        /// <param name="pythonFileToExecute">The script to execute.</param>
-        public static void RunFileOnClient(string pythonFileToExecute)
+        /// <param name="clientName">The name of the client to wait for.</param>
+        /// <param name="timeout">The maximum time to wait on the client, in seconds.</param>
+        /// <returns>The IEnumerator to iterate upon. Always yields null.</returns>
+        public static IEnumerator WaitForConnection(string clientName, double timeout = 10.0)
         {
-            EnsureOutOfProcessInitialized();
-
-            if (null == pythonFileToExecute)
+            double initTime = EditorApplication.timeSinceStartup;
+            while (!PythonRunner.IsClientConnected(clientName))
             {
-                throw new System.ArgumentNullException("pythonFileToExecute", "Invalid (null) file path");
+                if (EditorApplication.timeSinceStartup - initTime > timeout)
+                {
+                    break;
+                }
+                yield return null;
             }
-
-            // Forward slashes please
-            pythonFileToExecute = pythonFileToExecute.Replace("\\","/");
-
-            if (!File.Exists (pythonFileToExecute))
-            {
-                throw new System.IO.FileNotFoundException("No Python file found at " + pythonFileToExecute, pythonFileToExecute);
-            }
-
-            // TODO: run this as dynamic variables so we don't need to quote the filename
-            string serverCode = ImportServerString + string.Format(@"unity_server.run_python_file_on_client('{0}')",pythonFileToExecute);
-            RunString(serverCode);
-        }
-
-        /// <summary>
-        /// Calls a rpyc service method on the client (remote call)
-        /// </summary>
-        /// <param name="serviceName">The name of the service.</param>
-        /// <param name="pythonArgs">The Python args passed to the service as a string.</param>
-        public static void CallServiceOnClient(string serviceName, string pythonArgs = "None")
-        {
-            EnsureOutOfProcessInitialized();
-            // TODO: run this as dynamic variables so we don't need to quote the arguments
-            string serverCode = ImportServerString + string.Format(@"unity_server.call_remote_service({0},{1})",serviceName,pythonArgs);
-            RunString(serverCode);
-        }
-
-        /// <summary>
-        /// Stops the Unity server when Python shuts down
-        /// </summary>
-        private static void OnPythonShutdown()
-        {
-            StopServer();
-            PythonEngine.RemoveShutdownHandler(OnPythonShutdown);
         }
 
         /// <summary>
@@ -231,8 +487,16 @@ namespace UnityEditor.Scripting.Python
             {
                 return;
             }
-            DoEnsureInProcessInitialized();
-            s_IsInProcessInitialized = true;
+            try
+            {
+                s_IsInProcessInitialized = true;
+                DoEnsureInProcessInitialized();
+            }
+            catch
+            {
+                s_IsInProcessInitialized = false;
+                throw;
+            }
         }
         static bool s_IsInProcessInitialized = false;
 
@@ -250,6 +514,17 @@ namespace UnityEditor.Scripting.Python
             // problematic. This can be changed at runtime by a script.
             System.Environment.SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
 
+#if UNITY_EDITOR_OSX
+            // On OSX, PythonNET initializes with the system Python (/usr/bin/python). 
+            // However, if there are other Python installations on the 
+            // system (e.g. /usr/local/bin/python), the resulting sys.path might be 
+            // favoring the local installation instead of the system one
+            // Here we force the PythonNET interpreter (the system's) to use the right 
+            // Python home
+
+            PythonEngine.PythonHome = "/usr";
+#endif // UNITY_EDITOR_OSX
+
             ///////////////////////
             // Initialize the engine if it hasn't been initialized yet.
             PythonEngine.Initialize();
@@ -265,9 +540,39 @@ namespace UnityEditor.Scripting.Python
             // TODO: remove duplicates.
             using (Py.GIL())
             {
-                // Get the builtin module, which is 'builtins' on python3 and __builtin__ on python2
-                dynamic builtins = PythonEngine.ImportModule("__builtin__");
+                // Start coverage here for in-process coverage
+                if(!string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("COVERAGE_PROCESS_START")))
+                {
+                    // Assume that if we are trying to run coverage, the module
+                    // is in the path. Try to import it to give a better error message
+                    dynamic coverage = null;
+                    try
+                    {
+                         coverage = PythonEngine.ImportModule("coverage");
+                    }
+                    catch (PythonException e)
+                    {
+                        // Throw a more understandable exception if we fail.
+                        if (e.Message.Contains("ImportError"))
+                        {
+                            throw new PythonInstallException(
+                                $"Environment variable for code coverage is defined but no coverage package can be found. \n{e.Message}"
+                                );
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                    coverage.process_startup();
+                }
 
+                ///////////////////////
+                // Add the packages we use to the sys.path, and put them at the head.
+                // TODO: remove duplicates.
+
+                // Get the builtin module, which is 'builtins' on Python3 and __builtin__ on Python2
+                dynamic builtins = PythonEngine.ImportModule("__builtin__");
                 // prepend to sys.path
                 dynamic sys = PythonEngine.ImportModule("sys");
                 dynamic syspath = sys.GetAttr("path");
@@ -281,7 +586,8 @@ namespace UnityEditor.Scripting.Python
                 sys.SetAttr("path", pySitePackages);
 
                 // Log what we did. TODO: just to the editor log, not the console.
-                Debug.Log("sys.path = " + sys.GetAttr("path").ToString());
+                var sysPath = sys.GetAttr("path").ToString();
+                Console.Write($"Python for Unity initialized:\n  version = {PythonEngine.Version}\n  sys.path = {sysPath}\n");
             }
         }
 
@@ -317,9 +623,12 @@ namespace UnityEditor.Scripting.Python
             // 4. The packages from the settings.
             foreach(var settingsPackage in PythonSettings.SitePackages)
             {
-                var settingsSitePackage = Path.GetFullPath(settingsPackage);
-                settingsSitePackage = settingsSitePackage.Replace("\\", "/");
-                sitePackages.Add(settingsSitePackage);
+                if (!string.IsNullOrEmpty(settingsPackage))
+                {
+                    var settingsSitePackage = Path.GetFullPath(settingsPackage);
+                    settingsSitePackage = settingsSitePackage.Replace("\\", "/");
+                    sitePackages.Add(settingsSitePackage);
+                }
             }
 
             return sitePackages;
@@ -338,10 +647,44 @@ namespace UnityEditor.Scripting.Python
             {
                 return;
             }
-            DoEnsureOutOfProcessInitialized();
-            s_IsOutOfProcessInitialized = true;
+            try
+            {
+                s_IsOutOfProcessInitialized = true;
+                DoEnsureOutOfProcessInitialized();
+            }
+            catch
+            {
+                s_IsOutOfProcessInitialized = false;
+                throw;
+            }
         }
         static bool s_IsOutOfProcessInitialized = false;
+
+        static dynamic CheckForModule(string module, PyDict environmentOverride = null)
+        {
+            if (environmentOverride == null)
+            {
+                environmentOverride = new PyDict();
+            }
+            using (Py.GIL())
+            {
+                // retval = unity_rpyc.unity_server.UnityServer.spawn_subpython(["-c", "import {}".format(module)]).wait()
+                dynamic UnityServer = PythonEngine.ImportModule("unity_python.server.server");
+                PyList args = new PyList();
+                args.Append(new PyString("-c"));
+                args.Append(new PyString($"import {module}"));
+                dynamic sub = UnityServer.spawn_subpython(args, wantLogging: false, python_executable: PythonSettings.PythonInterpreter, env_override: environmentOverride);
+                if (sub == null)
+                {
+                    // Failing due to rpyc missing is one thing, but not even
+                    // running means something worse is happening. Make it log.
+                    UnityServer.spawn_subpython(args, wantLogging: true, python_executable: PythonSettings.PythonInterpreter);
+                    throw new PythonInstallException($"Check the prior log; unable to run client Python '{PythonSettings.PythonInterpreter}'.");
+                }
+                sub.wait();
+                return sub;
+            }
+        }
 
         /// <summary>
         /// Helper for EnsureOutOfProcessInitialized; call that function instead.
@@ -361,83 +704,57 @@ namespace UnityEditor.Scripting.Python
             }
 
             // We need rpyc on the Unity (server) side.
-            // TODO: grab it from pip if we don't have it.
+            // It's normally installed with the Python for Unity package, so this should always work,
+            // if it fails it means there's a distribution bug or the user broke their package cache.
             using (Py.GIL())
             {
                 var rpyc = PythonEngine.ImportModule("rpyc");
                 if (!rpyc.IsTrue())
                 {
-                    // TODO: we could just run python -m pip install --target Library/site-packages rpyc
-                    // Then add that directory to the sys.path
-                    throw new PythonInstallException($"Install rpyc where the system Python can find it.");
+                    throw new PythonInstallException($"rpyc can't be found. Try clearing your package cache and installing com.unity.scripting.python again.");
                 }
             }
 
-            // Set the server settings. We do this by setting globals in unity_server.
-            using (Py.GIL())
+            // Start by testing for coverage. Failures due to coverage not 
+            // isntalled or a non-existing config or invalid configuration 
+            // passes as a failure to find RPyC
+            // If user enabled coverage, check if the client can also find it
+            bool clientFoundCoverage = false;
+            if(!string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("COVERAGE_PROCESS_START")))
             {
-                // Get the builtin module, which is 'builtins' on python3 and __builtin__ on python2
-                dynamic builtins = PythonEngine.ImportModule("__builtin__");
+                // Fool the client in thinking coverage is not enabled. This way,
+                // sitecustomize won't try to import it
+                var environmentOverride = new PyDict();
+                // The roundabout, awkward way to PyNone:
+                environmentOverride[new PyString("COVERAGE_PROCESS_START")] = PyObject.FromManagedObject(null);
+                dynamic coverageCheck = CheckForModule("coverage", environmentOverride);
+                dynamic retval = coverageCheck.wait();
+                clientFoundCoverage = !retval.IsTrue();
 
-                var unity_server = PythonEngine.ImportModule("unity_rpyc.unity_server");
-                var clientPython = PythonSettings.WhereIs(PythonSettings.PythonInterpreter);
-                unity_server.SetAttr("python_executable", new PyString(clientPython));
-                var extraSitePackages = builtins.list();
-                foreach(var sitePackage in GetExtraSitePackages())
+                if(!clientFoundCoverage)
                 {
-                    extraSitePackages.append(new PyString(sitePackage));
+                    throw new PythonInstallException($"Coverage python package can't be found. Please install Coverage in {PythonSettings.PythonInterpreter}");
                 }
-                unity_server.SetAttr("extra_site_packages", extraSitePackages);
 
-                // TODO: we need a way to tell the client, too!
-                // unity_server.SetAttr("polling_port", new PyInt(PythonSettings.instance.m_pollingPort));
-                // unity_server.SetAttr("client_port", new PyInt(PythonSettings.instance.m_clientPort));
+                // Test once again to make sure the configuration file can be 
+                // found and is valid. This is done in sitecustomize
+                coverageCheck = CheckForModule("coverage");
             }
 
             // Verify the spawned Python can find rpyc. If it can't, the client would die silently, unable to connect.
             // Best to discover that here and raise an exception already.
             bool clientFoundRpyc = false;
-            try
+            dynamic rpycCheck = CheckForModule("rpyc");
+            using (Py.GIL())
             {
-                // get the builtin module, which is 'builtins' on python3 and __builtin__ on python2
-                dynamic builtins = PythonEngine.ImportModule("__builtin__");
-
-                // retval = unity_rpyc.unity_server.UnityServer.spawn_subpython(["-c", "import rpyc"]).wait()
-                dynamic unity_server = PythonEngine.ImportModule("unity_rpyc.unity_server");
-                dynamic UnityServer = unity_server.UnityServer;
-                dynamic args = builtins.list();
-                args.append(new PyString("-c"));
-                args.append(new PyString("import rpyc"));
-                dynamic sub = UnityServer.spawn_subpython(args, logging: false);
-                if (sub == null)
-                {
-                    // Failing due to rpyc missing is one thing, but not even
-                    // running means something worse is happening. Make it log.
-                    UnityServer.spawn_subpython(args, logging: true);
-                    throw new PythonInstallException($"Check the prior log; unable to run client Python '{PythonSettings.PythonInterpreter}'.");
-                }
-                else
-                {
-                    dynamic retval = sub.wait();
-                    if (!retval.IsTrue())
-                    {
-                        // 0 is false, but 0 is success
-                        clientFoundRpyc = true;
-                    }
-                }
+                dynamic retval = rpycCheck.wait();
+                // retval 0 is success (a True retval would be some non-zero error code)
+                clientFoundRpyc = !retval.IsTrue();
             }
-            catch(Exception xcp)
-            {
-                if (xcp is PythonInstallException)
-                {
-                    throw;
-                }
-                throw new PythonInstallException($"Check your Python Net settings; unable to run client Python '{PythonSettings.PythonInterpreter}'.", xcp);
-            }
+            
             if (!clientFoundRpyc)
             {
-                // TODO: we could just run python -m pip install --target Library/site-packages rpyc
-                // Then add that directory to the PYTHONPATH when running Python.
+                // Normally spawn_subpython will prepend rpyc to the sys.path - if we can't find rpyc something is weird.
                 throw new PythonInstallException($"Please install rpyc in {PythonSettings.PythonInterpreter}");
             }
 
@@ -446,29 +763,37 @@ namespace UnityEditor.Scripting.Python
             EditorApplication.quitting += OnQuit;
         }
 
-        private static void OnQuit()
-        {
-            StopServer(true);
-            EditorApplication.quitting -= OnQuit;
-        }
-
     #if DEBUG
-        [MenuItem("Python/Debug/Start rpyc server (and client)")]
+        [MenuItem("Python/Debug/Start rpyc server")]
         private static void DebugStartServer()
         {
             StartServer();
         }
 
-        [MenuItem("Python/Debug/Stop rpyc server")]
-        private static void DebugStopServer()
+        [MenuItem("Python/Debug/Stop rpyc server (no reconnect)")]
+        private static void DebugStopServerHard()
         {
-            StopServer();
+            StopServer(inviteReconnect: false);
         }
 
-        [MenuItem("Python/Debug/Stop rpyc server and client")]
-        private static void DebugStopServerAndClient()
+        [MenuItem("Python/Debug/Stop rpyc server (reconnect)")]
+        private static void DebugStopServerSoft()
         {
-            StopServer(true);
+            StopServer(inviteReconnect: true);
+        }
+
+        [MenuItem("Python/Debug/List connected clients")]
+        private static void DebugListConnectedClients()
+        {
+            string[] test = GetConnectedClients();
+
+            if (test.Length == 0)
+                Debug.Log("No connected clients.");
+
+            foreach (string i in test)
+            {
+                Debug.Log(i);
+            }
         }
     #endif
     }

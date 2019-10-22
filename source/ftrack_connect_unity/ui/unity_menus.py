@@ -4,11 +4,7 @@
 This script generates the C# script responsible to populate the menus in Unity
 """
 
-# Unity
-import unity_connection
-
-# ftrack
-from connector.unity_connector import UnityEngine, UnityEditor
+from connector.unity_connector import GetUnityEngine, GetUnityEditor
 
 # Misc
 import os
@@ -29,7 +25,7 @@ _script_template = '''
 using UnityEngine;
 using UnityEditor.Scripting.Python;
 
-namespace UnityEditor.ftrack.connect_unity_engine
+namespace UnityEditor.Ftrack.ConnectUnityEngine
 {{
     public static class FtrackMenus
     {{
@@ -42,7 +38,7 @@ _menu_item_template = '''
         [MenuItem("ftrack/{menu_item_name}")]
         private static void ShowDialog{menu_item_index}()
         {{
-            PythonRunner.CallServiceOnClient("'ftrack_show_dialog'", "'{dialog_name}'");
+            Client.CallService("show_dialog", "{dialog_name}");
         }}
 '''
 
@@ -50,7 +46,8 @@ _assembly_template = '''
 {
     "name": "FtrackMenus",
     "references": [
-        "Unity.Scripting.Python.Editor"
+        "Unity.Scripting.Python.Editor",
+        "ftrack.connect-unity-engine"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [
@@ -88,7 +85,7 @@ def generate():
     script = _script_template.format(menu_item_section = menu_item_section)
     
     # Build the final file path
-    ftrack_asset_path = UnityEngine().Application.dataPath
+    ftrack_asset_path = GetUnityEngine().Application.dataPath
     ftrack_asset_path = os.path.normpath(
         os.path.join(ftrack_asset_path, 'ftrack', 'Temp'))
 
@@ -119,4 +116,4 @@ def generate():
         f.write(_readme_template)
         
     # Refresh the database
-    UnityEditor().AssetDatabase.Refresh()
+    GetUnityEditor().AssetDatabase.Refresh()

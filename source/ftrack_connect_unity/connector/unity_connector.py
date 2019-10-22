@@ -2,15 +2,12 @@
 # :copyright: Copyright (c) 2019 ftrack
 
 # ftrack
+
 import ftrack
 import ftrack_api
 import ftrack_connect.config
 from ftrack_connect.connector import base as maincon
 from ftrack_connect.connector import FTAssetHandlerInstance
-
-# Unity
-import unity_client
-import unity_connection
 
 # misc
 import json
@@ -21,65 +18,23 @@ import pprint
 # Install the ftrack logging handlers
 ftrack_connect.config.configure_logging('ftrack_connect_unity')
 
-"""
-Unity C# API access
+# Logging
+_logger = logging.getLogger('unity_connector')
 
-It is better to fetch the module each time we access it in case there was
-a domain reload (the previous module would not be valid anymore)
-"""
-def UnityEngine():
-    return unity_connection.get_module('UnityEngine')
-
-def UnityEditor():
-    return unity_connection.get_module('UnityEditor')
-
-class System(object):
-    @staticmethod
-    def IO():
-        return unity_connection.get_module('System.IO')
-
-class Logger(object):
+def GetUnityEditor():
     """
-    This class provides logging interface similar to the ftrack logger.
-    Messages are printed to the client log, but also to the ftrack logger.
-    
-    We do this because the Unity Python package does not use the logging module
-    yet. If it was, then it would use its own logger and handlers. Handlers 
-    would be replaced by the ftrack handlers on init, which is fine.
-    
-    When everything is in place, we will be able to get rid of this class and 
-    simply use our own logger directly (_ftrack_logger).
-    
-    Bottom-line, we want to write to both the logging module and the 
-    unity_client module, until the unity_client module implements logging 
-    properly. then we can get rid of this class.
+    We import ftrack_client here to avoid a circular dependency between
+    ftrack_client and unity_connector
     """
-    # Create our logger
-    _ftrack_logger = logging.getLogger('unity_connector')
-    
-    @classmethod
-    def debug(cls, msg):
-        cls._do_log(msg, 'debug')
-
-    @classmethod
-    def error(cls, msg):
-        cls._do_log(msg, 'error')
-    
-    @classmethod
-    def info(cls, msg):
-        cls._do_log(msg, 'info')
-
-    @classmethod
-    def warning(cls, msg):
-        cls._do_log(msg, 'warning')
-
-    @classmethod
-    def _do_log(cls, msg, level):
-        client_msg = '[ftrack_client-{}] {}'.format(level, msg)
-        unity_client.log(client_msg)
-        
-        ftrack_logger_method = getattr(cls._ftrack_logger, level)
-        ftrack_logger_method(msg)
+    from ftrack_client import GetUnityEditor as ftGetUnityEditor
+    return ftGetUnityEditor()
+def GetUnityEngine():
+    """
+    We import ftrack_client here to avoid a circular dependency between
+    ftrack_client and unity_connector
+    """
+    from ftrack_client import GetUnityEngine as ftGetUnityEngine
+    return ftGetUnityEngine()
 
 class Connector(maincon.Connector):
     def __init__(self):
@@ -154,7 +109,7 @@ class Connector(maincon.Connector):
         '''
         ftrack_assets = [ ]
 
-        unity_asset_guids = UnityEditor().AssetDatabase.FindAssets('t:model', None)
+        unity_asset_guids = GetUnityEditor().AssetDatabase.FindAssets('t:model', None)
         for guid in unity_asset_guids:
             ftrack_asset = Connector._ftrack_asset_from_guid(guid) 
             if ftrack_asset:
@@ -178,13 +133,13 @@ class Connector(maincon.Connector):
 
     @staticmethod
     def getAsset(assetName, assetType, taskid):
-        unity_asset_guids = UnityEditor().AssetDatabase.FindAssets('t:model', None)
+        unity_asset_guids = GetUnityEditor().AssetDatabase.FindAssets('t:model', None)
         for guid in unity_asset_guids:
             # Get the asset path
-            asset_path = UnityEditor().AssetDatabase.GUIDToAssetPath(guid)
+            asset_path = GetUnityEditor().AssetDatabase.GUIDToAssetPath(guid)
 
             # Get the importer for that asset
-            asset_importer = UnityEditor().AssetImporter.GetAtPath(asset_path)
+            asset_importer = GetUnityEditor().AssetImporter.GetAtPath(asset_path)
 
             # Get the metadata
             try:
@@ -216,14 +171,14 @@ class Connector(maincon.Connector):
 
         # Build a set of candidate guids
         # Look at currently selected assets in the project first
-        guids = set(UnityEditor().Selection.assetGUIDs)
+        guids = set(GetUnityEditor().Selection.assetGUIDs)
         
         # Then look at selected game objects in case they relate to ftrack 
         # assets
-        for game_object in UnityEditor().Selection.gameObjects:
-            asset_path = UnityEditor().PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(game_object)
+        for game_object in GetUnityEditor().Selection.gameObjects:
+            asset_path = GetUnityEditor().PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(game_object)
             if asset_path:
-                guid = UnityEditor().AssetDatabase.AssetPathToGUID(asset_path)
+                guid = GetUnityEditor().AssetDatabase.AssetPathToGUID(asset_path)
                 if guid:
                     guids.add(guid)
 
@@ -243,21 +198,10 @@ class Connector(maincon.Connector):
         '''
         if len(guids) < 1:
             return
-        
-        # Setting the selection from a list is not supported on the client side
-        # yet because of how rpyc translates C# generics. We need to run the
-        # selection code on the server
-        # (Taken from the Unity Python package sample
-        selection_script = os.path.dirname(__file__)
-        selection_script = os.path.join(selection_script, 'unity_select_assets.py')
-                
-        # Double up the backslashes so they do not become escape characters
-        selection_script = selection_script.replace('\\', '\\\\')
-        
-        # Execute the selection script, passing the guids as the globals 
-        # dictionary
-        unity_connection.execute('execfile("{}", {})'.format(selection_script, str( {'guids_to_select':guids} )))
-    
+
+        # Select the assets
+        GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.SelectObjectsWithGuids(guids)
+
     @staticmethod
     def selectObject(applicationObject):
         '''
@@ -273,11 +217,11 @@ class Connector(maincon.Connector):
         Delete the Unity project asset which matches the asset manager's asset
         for which the 'trash' button was clicked
         '''
-        asset_path = asset_path = UnityEditor().AssetDatabase.GUIDToAssetPath(applicationObject)
+        asset_path = asset_path = GetUnityEditor().AssetDatabase.GUIDToAssetPath(applicationObject)
         if not asset_path:
             return
         
-        UnityEditor().AssetDatabase.DeleteAsset(asset_path)
+        GetUnityEditor().AssetDatabase.DeleteAsset(asset_path)
 
     @staticmethod
     def getConnectorName():
@@ -291,10 +235,10 @@ class Connector(maincon.Connector):
         (ftrack componentId, Unity asset guid)
         '''
         # Get the asset path
-        asset_path = UnityEditor().AssetDatabase.GUIDToAssetPath(guid)
+        asset_path = GetUnityEditor().AssetDatabase.GUIDToAssetPath(guid)
         
         # Get the importer for that asset
-        asset_importer = UnityEditor().AssetImporter.GetAtPath(asset_path)
+        asset_importer = GetUnityEditor().AssetImporter.GetAtPath(asset_path)
         
         # Get the metadata
         try:

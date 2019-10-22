@@ -2,7 +2,7 @@
 
 * [Python 2.7.5 (64 bits) or later](https://www.python.org/downloads/release/python-2716/). The package does not work with Python 3.
 
-* [Unity 2018.3](https://unity3d.com/get-unity/download). We recommend installing the latest version of Unity 2018 via the Unity Hub; 2018.3 is the minimum. Unity 2019 is not yet fully tested.
+* [Unity 2019.3](https://unity3d.com/get-unity/download). We recommend installing the latest version of Unity 2019 via the Unity Hub; 2019.3 is the minimum. 
 
 * Projects must use the [.NET 4.x Equivalent](https://docs.unity3d.com/Manual/ScriptingRuntimeUpgrade.html) scripting runtime version. This is the default for new projects but needs to be changed by hand when importing projects from earlier versions of Unity.
 
@@ -31,9 +31,7 @@ The key goal:
 * Within Unity, go to `Edit -> Project Settings -> Python` and set the `Out of process Python` to point to a Python that includes PySide support.
 * Verify installation by [running the PySide example](pysideExampleWalkthrough.html).
 
-There are many options to get PySide installed and visible from Unity. Two that we have tested include:
-
-#### Install macports Python
+There are many options to get PySide installed and visible from Unity. Here's the one we tested using MacPorts:
 
 * Install [MacPorts](https://macports.org)
 
@@ -49,6 +47,19 @@ sudo port install python27 py27-pyside
 * Restart Unity.
 * Verify installation by [running the PySide example](pysideExampleWalkthrough.html).
 
+## On CentOS7
+Python is part of the distribution and is compatible with the integration.
+
+To install PySide paste in a terminal: 
+```
+yum install python2-pyside
+```
+It is also possible to install PySide from pip, but it requires the `qt-devel` package to be installed:
+```
+yum install qt-devel
+pip install pyside
+```
+
 #### Use Shotgun's Python
 
 * Install Autodesk's Shotgun Desktop app
@@ -57,4 +68,5 @@ sudo port install python27 py27-pyside
 /Applications/Shotgun.app/Contents/Resources/Python/bin/python
 ```
 * Restart Unity.
+* Make sure the project is running with the .NET 4.x Api Compatibility Level (Project Settings/Player), as some features of the package will not function properly with .NET 2.0.
 * Verify installation by [running the PySide example](pysideExampleWalkthrough.html).

@@ -3,7 +3,7 @@
 ## Referencing the Python Assembly
 
 For your scripts to be able to recognise the _Unity.Scripting.Python_ namespace 
-and interact with the PythonRunner class (or directly use the Python.Runtime 
+and interact with the `PythonRunner` class (or directly use the Python.Runtime 
 namespace from Python.Net), you need to create an _Assembly Definition (.asmdef)_ 
 file in the same folder you would like to store your C# scripts that 
 will interact with Python. You can create one by right-clicking anywhere in your 
@@ -20,14 +20,16 @@ Using the dialog, select com.unity.scripting.python.editor. Apply your change in
 ![Adding the Python Assembly Reference](images/addingpythonassembly.png)
 
 ## Running Python Code from Unity
-Included in this package is a simple script called PythonRunner (located in 
+Included in this package is a simple script called `PythonRunner` (located in 
 the _com.unity.scripting.python.editor_ assembly). It contains the 
 _UnityEditor.Scripting.Python.PythonRunner_ class, which can be used for 
 calling into the Python interpreter.
 
-It is recommended to always use the PythonRunner class to call into the Python 
-interpreter, as the PythonRunner class ensures proper initialization of the 
-interpreter.
+It is recommended to always use the `PythonRunner` class to call into the Python 
+interpreter, as the `PythonRunner` class ensures proper initialization of the 
+interpreter. When calling Python functions exposed through Python.NET directly, 
+always ensure the runtime is properly initialized by calling 
+`PythonRunner.EnsureInProcessInitialized()` beforehand.
 
 Simple, stateless Python scripts can be run directly inside of the Unity Editor
 process, using the [In-Process API](inProcessAPI.html).

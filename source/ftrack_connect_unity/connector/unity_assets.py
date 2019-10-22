@@ -4,24 +4,25 @@
 # ftrack
 import ftrack
 import ftrack_api
+from ftrack_client import GetUnityEngine, GetUnityEditor, GetSystem
 import ftrack_connect_unity
 from ftrack_connect.connector import (FTAssetType, FTAssetHandlerInstance,
                                       FTComponent)
-from connector.unity_connector import UnityEngine, UnityEditor, System, Logger
 
 # misc
 import json
+import logging
 import os
 import shutil
-import ast
 
+_logger = logging.getLogger('unity_assets')
 
 class GenericAsset(FTAssetType):
     def __init__(self):
         super(GenericAsset, self).__init__()
 
     def importAsset(self, iAObj=None):
-        Logger.debug('In GenericAsset.importAsset')
+        _logger.debug('In GenericAsset.importAsset')
 
         if not self._validate_ftrack_asset(iAObj):
             raise Exception('Invalid asset. See console for details')
@@ -34,13 +35,7 @@ class GenericAsset(FTAssetType):
             dst_directory = self._select_directory()
             
         # Import the asset
-        model_importer = self._import_ftrack_asset(iAObj, dst_directory) 
-        if not model_importer:
-            raise Exception('Could not import asset. See console for details')
-
-        # Apply the right settings to the importer
-        self._apply_settings_on_model_importer(iAObj, model_importer)
-        model_importer.SaveAndReimport()
+        self._import_ftrack_asset(iAObj, dst_directory, iAObj.options) 
  
     def changeVersion(self, iAObj=None, applicationObject=None):
         '''
@@ -50,38 +45,36 @@ class GenericAsset(FTAssetType):
         if not self._validate_ftrack_asset(iAObj):
             return False
         
-        asset_path = asset_path = UnityEditor().AssetDatabase.GUIDToAssetPath(applicationObject)
+        asset_path = asset_path = GetUnityEditor().AssetDatabase.GUIDToAssetPath(applicationObject)
         if not asset_path:
             error_string = 'Cannot find a related asset path in the Asset Database'
-            Logger.error(error_string)
+            _logger.error(error_string)
             
             # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
+            GetUnityEngine().Debug.LogError(error_string)
             return False
         
-        asset_full_path = System.IO().Path.GetFullPath(asset_path)
+        asset_full_path = GetSystem.IO().Path.GetFullPath(asset_path)
         if not asset_full_path:
             error_string = 'Cannot determine the full path for {}'.format(asset_path)
-            Logger.error(error_string)
+            _logger.error(error_string)
             
             # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
+            GetUnityEngine().Debug.LogError(error_string)
             return False
         
         dst_directory = os.path.split(asset_full_path)[0]
         
-        if not self._import_ftrack_asset(iAObj, dst_directory):
-            return False
-    
+        # Import, without considering settings (preserve settings as they 
+        # currently are)
+        self._import_ftrack_asset(iAObj, dst_directory, None)
         return True
 
     def publishAsset(self, published_file_path, iAObj=None):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        # TODO (CEC-229): pass published_file_path as a dict
-        #                 instead of a string
-        file_paths_dict = ast.literal_eval(published_file_path)
+        file_paths_dict = published_file_path
         publishedComponents = []
         componentName = "reviewable_asset"
         componentPath = "{0}.{1}".format(
@@ -132,7 +125,7 @@ class GenericAsset(FTAssetType):
             relative_path += '/'
         
         return "{0}/ftrack/{1}".format(
-            UnityEngine().Application.dataPath, relative_path)
+            GetUnityEngine().Application.dataPath, relative_path)
     
     def _select_directory(self):
         """
@@ -140,7 +133,7 @@ class GenericAsset(FTAssetType):
         Returns the directory name as a string
         """
         # Always start in the Assets directory        
-        assets_path = UnityEngine().Application.dataPath
+        assets_path = GetUnityEngine().Application.dataPath
 
         from QtExt import QtGui
         options = [
@@ -175,10 +168,10 @@ class GenericAsset(FTAssetType):
         # Validate the file
         if not os.path.exists(iAObj.filePath):
             error_string = 'ftrack cannot import file "{}" because it does not exist'.format(iAObj.filePath)
-            Logger.error(error_string)
+            _logger.error(error_string)
             
             # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
+            GetUnityEngine().Debug.LogError(error_string)
             return False
 
         # Only fbx files are supported
@@ -186,124 +179,61 @@ class GenericAsset(FTAssetType):
         (_, src_extension) = os.path.splitext(src_filename)
         if src_extension.lower() != '.fbx':
             error_string = 'ftrack does not support importing files with extension "{}"'.format(src_extension)
-            Logger.error(error_string)
+            _logger.error(error_string)
 
             # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
+            GetUnityEngine().Debug.LogError(error_string)
             return False
         
         return True
 
-    def _import_ftrack_asset(self, iAObj, dst_directory):
+    def _import_ftrack_asset(self, iAObj, dst_directory, options):
         '''
         Attemps to import the give asset .fbx file
         Returns the model importer if successful, otherwise returns None
         '''
         # The destination directory must be set
         if not dst_directory:
-            error_string = 'ftrack cannot import into the chosen directory "{}"'.format(dst_directory)
-            Logger.error(error_string)
+            error_string = 'ftrack cannot import the asset since the destination directory is missing'
+            _logger.error(error_string)
             
             # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
-            return None
-        
-        # The destination directory must be under Assets/
-        assets_path = UnityEngine().Application.dataPath
-        assets_path = os.path.abspath(assets_path)
-        if assets_path not in dst_directory:
-            error_string = 'ftrack cannot import into a directory that is not under Assets/'
-            Logger.error(error_string)
-            
-            # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
-            return None
-        
-        # Make sure the directory exists
-        if not os.path.isdir(dst_directory):
-            os.makedirs(dst_directory)
-        
-        # Copy the file
-        src_file = iAObj.filePath
-        (_, extension) = os.path.splitext(src_file)
+            GetUnityEngine().Debug.LogError(error_string)
+            raise ValueError(error_string)
 
-        # Use the asset name as the destination file name
-        dst_file = os.path.join(dst_directory, iAObj.assetName)
-        dst_file += extension
-        dst_file = os.path.normpath(dst_file)
-        
-        # If the asset already exists, show a message box asking if the asset
-        # should be reimported
-        if os.path.exists(dst_file):
-            result = UnityEditor().EditorUtility.DisplayDialog(
-                "ftrack Asset Already Exists",
-                "This asset already exists in the project!\n" +
-                "Do you want to reimport this asset?",
-                "Yes", "No")
-
-            if not result:
-                return None
-
-        try:
-            shutil.copy2(src_file, dst_file)
-        except IOError as e:
-            error_string = 'ftrack could not copy "{}" into "{}": {}'.format(
-                src_file, dst_file, e)
-            Logger.error(error_string)
-
-            # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
-            return None
-
-        # Refresh the asset database
-        UnityEditor().AssetDatabase.Refresh()
-
-        # Add the ftrack metadata to the model importer
-        # The Asset Importer expects a path using forward slashes and starting
-        # with 'Assets/'
-        model_importer_path = dst_file
-        model_importer_path = model_importer_path.replace('\\', '/')
-        model_importer_path = model_importer_path[
-            model_importer_path.find('/Assets')+1:]
-
-        model_importer = UnityEditor().AssetImporter.GetAtPath(
-            model_importer_path)
-        if not model_importer:
-            error_string = 'Could not find the asset importer for {}'.format(
-                model_importer_path)
-            Logger.error(error_string)
-
-            # Also log to the Unity console
-            UnityEngine().Debug.LogError(error_string)
-            return None
-
-        json_data = {
-            'assetName'                    : iAObj.assetName,
-            'assetType'                    : iAObj.assetType,
-            'assetVersion'                 : iAObj.assetVersion,
-            'assetVersionId'               : iAObj.assetVersionId,
-            'componentName'                : iAObj.componentName,
-            'componentId'                  : iAObj.componentId,
-            'filePath'                     : src_file,
-            'ftrack_connect_unity_version' : ftrack_connect_unity.__version__
+        # Prepare the Unity asset metadata
+        asset_data = {
+            'assetName': iAObj.assetName,
+            'assetType': iAObj.assetType,
+            'assetVersion': iAObj.assetVersion,
+            'assetVersionId': iAObj.assetVersionId,
+            'componentName': iAObj.componentName,
+            'componentId': iAObj.componentId,
+            'filePath': iAObj.filePath,
+            'ftrack_connect_unity_version': ftrack_connect_unity.__version__
         }
 
-        model_importer.userData = json.dumps(json_data)
-        model_importer.SaveAndReimport()
+        # Populate import options, if required
+        if options:
+            self._populate_options(options)
 
-        debug_string = 'Imported {} ({} -> {})'.format(
-            iAObj.assetName, src_file, dst_file)
-        Logger.debug(debug_string)
+        # Importing an asset can be a long process. We do not want the client to
+        # be blocked, waiting on the server for too long. Connection timeouts
+        # could occur, leading to import failures.
+        #
+        # Let the server do the work
+        # Also pass all the arguments as a single json string. This 
+        # minimizes the load on the socket (synchronizing the dictionaries)
+        arguments = {
+            'asset_data'   : asset_data,
+            'options'      : options,
+            'dst_directory': dst_directory
+        }
+        GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.ImportAsset(json.dumps(arguments))
 
-        # Also log to the Unity console
-        UnityEngine().Debug.Log(debug_string)
-
-        return model_importer
-
-    def _apply_settings_on_model_importer(self, iAObj, model_importer):
+    def _populate_options(self, options):
         # Generic Assets do not modify the import options
         pass
-
 
 class GeoAsset(GenericAsset):
     @classmethod
@@ -315,14 +245,10 @@ class GeoAsset(GenericAsset):
             </row>
         </tab>
         '''
-
-    def _apply_settings_on_model_importer(self, iAObj, model_importer):
-        model_importer.importMaterials = iAObj.options['unityImportMaterials']
-
+    def _populate_options(self, options):
         # Force importing without animation. Users can always change this
         # directly in the ModelImporter Inspector panel
-        model_importer.importAnimation = False
-
+        options['unityImportAnim'] = False
 
 class AnimAsset(GenericAsset):
     @classmethod
@@ -335,13 +261,10 @@ class AnimAsset(GenericAsset):
         </tab>
         '''
 
-    def _apply_settings_on_model_importer(self, iAObj, model_importer):
-        model_importer.importAnimation = iAObj.options['unityImportAnim']
-
+    def _populate_options(self, options):
         # Force importing without materials. Users can always change this
         # directly in the ModelImporter Inspector panel
-        model_importer.importMaterials = False
-
+        options['unityImportMaterials'] = False
 
 class RigAsset(GenericAsset):
     @classmethod
@@ -358,27 +281,14 @@ class RigAsset(GenericAsset):
             </row>
         </tab>
         '''
-
-    def _apply_settings_on_model_importer(self, iAObj, model_importer):
-        anim_type = iAObj.options['unityAnimType']
-        anim_type_switcher = {
-            "None": UnityEditor().ModelImporterAnimationType.None,
-            "Legacy": UnityEditor().ModelImporterAnimationType.Legacy,
-            "Generic": UnityEditor().ModelImporterAnimationType.Generic,
-            "Human": UnityEditor().ModelImporterAnimationType.Human
-        }
-
-        model_importer.animationType = anim_type_switcher.get(
-            anim_type, UnityEditor().ModelImporterAnimationType.None)
-
+    def _populate_options(self, options):
         # Force importing without animation. Users can always change this
         # directly in the ModelImporter Inspector panel
-        model_importer.importAnimation = False
+        options['unityImportAnim'] = False
 
         # Force importing without materials. Users can always change this 
         # directly in the ModelImporter Inspector panel 
-        model_importer.importMaterials = False
-
+        options['unityImportMaterials'] = False
 
 class ImageSequenceAsset(GenericAsset):
     @classmethod
@@ -398,9 +308,7 @@ class ImageSequenceAsset(GenericAsset):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        # TODO (CEC-229): pass published_file_path as a dict
-        #                 instead of a string
-        file_paths_dict = ast.literal_eval(published_file_path)
+        file_paths_dict = published_file_path
         publishReviewable = iAObj.options.get('publishReviewable')
         publishedComponents = []
         if publishReviewable:

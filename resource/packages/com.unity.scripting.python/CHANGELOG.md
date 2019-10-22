@@ -1,6 +1,22 @@
 # Changes in Python.Net
 
 RELEASE NOTES
+
+## [2.0.0-preview.2] - 2019-10-09
+
+BREAKING CHANGE
+* The out-of-process API has been entirely rewritten. The new API supports multiple clients, and asynchronous calls. Clients written to the previous API will need to be updated.
+
+NEW FEATURES
+* Python Console; find it in [menu]
+* Python.NET updated to version 2.4.0
+
+## [1.3.2-preview] - 2019-06-10
+
+FIXES
+- Fixed Python initialization problem on OSX
+
+RELEASE NOTES
 ## [1.3.0-preview] - 2019-04-24
 
 NEW FEATURES
@@ -67,6 +83,9 @@ NEW FEATURES
 KNOWN ISSUES
 - There might be scenarios that still crash/hang Unity when running Python after reloading assemblies. 
   - If your tools are affected by domain reload, consider using the rpyc architecture. Refer to the documentation for an example on how to use the rpyc architecture.
+
+## [All Versions] 
+- Trying to call UnityEngine.Debug.Log (or its variants) with a python string that contains non-ANSI characters, will cause the following error: `Python.Runtime.PythonException: TypeError : No method matches given arguments for Log`. For example this can happen on a French language version of Windows when a socket connection fails with `error: [Errno 10061] Aucune connexion n’a pu être établie car l’ordinateur cible l’a expressément refusée`.
 
 ## [1.0.0] - 2018-10-05
 

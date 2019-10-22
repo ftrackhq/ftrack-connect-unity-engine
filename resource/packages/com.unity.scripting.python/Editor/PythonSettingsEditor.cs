@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.IO;
+using System.Linq;
 using Python.Runtime;
 
 namespace UnityEditor.Scripting.Python
@@ -21,7 +22,17 @@ namespace UnityEditor.Scripting.Python
         /// </summary>
         public static string Version
         {
-            get { return "1.3.0-preview"; }
+            get { return "2.0.0-preview.2"; }
+        }
+
+        public static string PythonNetVersion
+        {
+            get { return System.Reflection.Assembly.GetAssembly(typeof(PythonEngine)).GetName().Version.ToString(); }
+        }
+
+        public static string RPyCVersion
+        {
+            get { return PythonRunner.GetRPyCVersion(); }
         }
 
         /// <summary>
@@ -88,6 +99,17 @@ namespace UnityEditor.Scripting.Python
             }
         }
 
+        //
+        string [] m_originalSitePackages;
+
+        public static bool SitePackagesChanged
+        {
+            get
+            {
+                return !(Enumerable.SequenceEqual(SitePackages, instance.m_originalSitePackages));
+            }
+        }
+
         /// <summary>
         /// Find an executable on the path.
         ///
@@ -130,7 +152,7 @@ namespace UnityEditor.Scripting.Python
             PythonRunner.EnsureInProcessInitialized();
             using(Py.GIL())
             {
-                dynamic unity_shutil = PythonEngine.ImportModule("unity_rpyc.unity_shutil");
+                dynamic unity_shutil = PythonEngine.ImportModule("unity_python.unity_shutil");
                 dynamic path = unity_shutil.which(exe);
                 return path == null ? "" : path.ToString();
             }
@@ -253,6 +275,7 @@ namespace UnityEditor.Scripting.Python
                         s_Instance.m_pythonInterpreter = "";
                     }
                     s_Instance.m_originalPythonInterpreter = PythonInterpreter;
+                    s_Instance.m_originalSitePackages = SitePackages;
                 }
                 return s_Instance;
             }
@@ -288,12 +311,12 @@ namespace UnityEditor.Scripting.Python
     }
 
     [CustomEditor(typeof(PythonSettings))]
-    public class PythonSettingsEditor : Editor
+    class PythonSettingsEditor : Editor
     {
         static class Styles
         {
-            public static readonly GUIContent pythonInterpreter = new GUIContent("Out-of-process Python", "Location of the Python to use for the out-of-process API");
-            public static readonly GUIContent sitePackages = new GUIContent("Site-packages directories", "Directories where your custom scripts are stored. Added to your sys.path ahead of the system sys.path. They are added both to the in-process and out-of-process Python APIs. Relative paths are interpreted within the Unity virtual file system.");
+            public static readonly GUIContent pythonInterpreter = new GUIContent("", "Location of the Python to use for the out-of-process API");
+            public static readonly GUIContent sitePackages = new GUIContent("Package Directories", "Directories where your custom scripts are stored. Added to your sys.path ahead of the system sys.path. They are added both to the in-process and out-of-process Python APIs. Relative paths are interpreted within the Unity virtual file system.");
             public static readonly GUIContent testTimeout = new GUIContent("Rarely needed: Timeout (ms) for Python testing", "Timeout in milliseconds to use when testing if the Python interpreter has the right version. Increase this if you're seeing 'took too long to run' errors when you correctly set the out-of-process Python.");
         }
 
@@ -368,6 +391,22 @@ namespace UnityEditor.Scripting.Python
             return longPythonVersion.Substring(0, firstSpace);
         }
 
+        string SetExternalPythonFromFile()
+        {
+
+#if UNITY_EDITOR_WIN
+            string extension = "exe";
+#else //Linux or Mac.
+            string extension = "";
+#endif
+            string pythonPath = EditorUtility.OpenFilePanel("Set Out-of-Process Python", "", extension);
+
+            if (string.IsNullOrEmpty(pythonPath))
+                return pythonPath;
+            else
+                return null;
+        }
+
         public override void OnInspectorGUI()
         {
             try
@@ -401,17 +440,74 @@ namespace UnityEditor.Scripting.Python
 
             // TODO: label + selectable label so users can copy-paste package version
             // (and the same for all versions below)
-            EditorGUILayout.LabelField("Python for Unity. Package Version: " + PythonSettings.Version);
+            EditorGUILayout.LabelField("Package Version: " + PythonSettings.Version);
 
-            EditorGUILayout.Separator();
+            EditorGUILayout.LabelField("Python.Net Version: " + PythonSettings.PythonNetVersion);
+            EditorGUILayout.LabelField("RPyC Version: " + PythonSettings.RPyCVersion);
 
+            EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+
+
+            //Python Process Versions section.
+            EditorGUILayout.LabelField("Python Process Versions", EditorStyles.boldLabel);
+
+
+            //Internal version info.
             EditorGUILayout.LabelField(
-                new GUIContent("In-process Python Version " + ShortPythonVersion(PythonRunner.InProcessPythonVersion),
+                new GUIContent("Internal: " + ShortPythonVersion(PythonRunner.InProcessPythonVersion),
                                "The Python for the in-process API is determined by the path when you started Unity. Currently it is version:\n"
                                + PythonRunner.InProcessPythonVersion));
 
-            // End of the info section. Start of the in-process section.
+
+            //Out-of-Process version info + handling of the pythonInterpreter variable.
+            EditorGUILayout.BeginHorizontal();
+
+            var pythonInterpreter = m_pythonInterpreterLastSet;
+            var pythonVersion = SetPythonInterpreter(settings, m_pythonInterpreterLastSet);
+
+            //Show current version.
+            EditorGUILayout.LabelField(
+                    new GUIContent("External: " + ShortPythonVersion(pythonVersion),
+                                   "The Python for the out-of-process API is determined by the following setting. Currently it is version:\n"
+                                   + pythonVersion));
+
+            //If needed, set the default Python interpreter.
+            if (m_pythonInterpreterLastSet == null)
+            {
+                SetPythonInterpreter(settings, PythonSettings.PythonInterpreter);
+            }
+
+            //Set Out-of-Process from path string.
+            pythonInterpreter = EditorGUILayout.DelayedTextField(Styles.pythonInterpreter, m_pythonInterpreterLastSet);
+            pythonVersion = SetPythonInterpreter(settings, pythonInterpreter.Trim());
+
+            //Set Out-of-Process from file.
+            if (GUILayout.Button("...", GUILayout.Width(50)))
+            {
+                string pythonPath = SetExternalPythonFromFile();
+                if (pythonPath != null)
+                {
+                    pythonInterpreter = pythonPath;
+                    pythonVersion = SetPythonInterpreter(settings, pythonInterpreter);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            //If needed, display relevant messages.
+            if (!string.IsNullOrEmpty(m_pythonInstallError))
+            {
+                EditorGUILayout.HelpBox(m_pythonInstallError, MessageType.Error);
+            }
+            if (PythonSettings.PythonInterpreterChanged)
+            {
+                EditorGUILayout.HelpBox("Restart Unity to use the new Python", MessageType.Warning);
+            }
+
             EditorGUILayout.Separator();
+
+
+            //Site Packages section.
+            EditorGUILayout.LabelField("Site Packages", EditorStyles.boldLabel);
 
             // The site packages array goes through the serializedObject code path
             // to offer the usual array modification workflow in the UI.
@@ -424,41 +520,48 @@ namespace UnityEditor.Scripting.Python
                 serializedObject.ApplyModifiedProperties();
             }
 
-            // End of the in-process section; start of the out-of-process section.
-            EditorGUILayout.Separator();
-
-            // TODO: add a '...' button to pop up a file dialog instead of typing.
-            if (m_pythonInterpreterLastSet == null)
+            if (PythonSettings.SitePackagesChanged)
             {
-                SetPythonInterpreter(settings, PythonSettings.PythonInterpreter);
-            }
-            var pythonInterpreter = EditorGUILayout.DelayedTextField(Styles.pythonInterpreter, m_pythonInterpreterLastSet);
-            var pythonVersion = SetPythonInterpreter(settings, pythonInterpreter.Trim());
-            if (!string.IsNullOrEmpty(m_pythonInstallError))
-            {
-                EditorGUILayout.HelpBox(m_pythonInstallError, MessageType.Error);
-            }
-            else
-            {
-                EditorGUILayout.LabelField(
-                    new GUIContent("Out-of-process Python Version: " + ShortPythonVersion(pythonVersion),
-                                   "The Python for the out-of-process API is determined by the setting above. Currently it is version:\n"
-                                   + pythonVersion));
-            }
-
-            if (PythonSettings.PythonInterpreterChanged)
-            {
-                EditorGUILayout.HelpBox("Restart Unity to use the new Python", MessageType.Warning);
+                EditorGUILayout.HelpBox("Restart Unity for these changes to be applied.", MessageType.Warning);
             }
 
             EditorGUILayout.Separator();
+
+            //Troubleshooting section.
+            EditorGUILayout.LabelField("Troubleshooting", EditorStyles.boldLabel);
+
+            EditorGUILayout.LabelField("External Python Processes: ");
+
+            // For each currently active external Python process...
+            string[] pythonConnectedClients = PythonRunner.GetConnectedClients();
+            foreach (string c in pythonConnectedClients)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("            - " + c);
+                if (GUILayout.Button("Reset", GUILayout.Width(98)))
+                {
+                    Debug.Log("Resetting the External Python Process' connection '" + c + "'.");
+                    PythonRunner.CloseClient(c, true);
+                }
+                if (GUILayout.Button("Disconnect", GUILayout.Width(98)))
+                {
+                    Debug.Log("Disconnecting the External Python Process '" + c + "'.");
+                    PythonRunner.CloseClient(c, false);
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            if (pythonConnectedClients.Length == 0)
+                EditorGUILayout.LabelField("            - No client connected.");
+
+            EditorGUILayout.Separator();
+
             settings.m_pythonTimeoutMs = EditorGUILayout.DelayedIntField(Styles.testTimeout, settings.m_pythonTimeoutMs);
         }
 
         [SettingsProvider]
         static SettingsProvider CreatePythonSettingsProvider()
         {
-            return new AssetSettingsProvider("Project/Python", () => PythonSettings.instance);
+            return new AssetSettingsProvider("Project/Python Integration", () => PythonSettings.instance);
         }
     }
 }
