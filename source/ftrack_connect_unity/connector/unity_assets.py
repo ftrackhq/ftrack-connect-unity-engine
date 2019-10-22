@@ -258,6 +258,9 @@ class AnimAsset(GenericAsset):
             <row name="Import Animation" accepts="unity">
                 <option type="checkbox" name="unityImportAnim" value="True"/>
             </row>
+            <row name="Loop Time" accepts="unity">
+                <option type="checkbox" name="unityLoopTime" value="False"/>
+            </row>
         </tab>
         '''
 
@@ -279,16 +282,15 @@ class RigAsset(GenericAsset):
                     <optionitem name="Human"/>
                 </option>
             </row>
+            <row name="Import Materials" accepts="unity">
+                <option type="checkbox" name="unityImportMaterials" value="True"/>
+            </row>
         </tab>
         '''
     def _populate_options(self, options):
         # Force importing without animation. Users can always change this
         # directly in the ModelImporter Inspector panel
         options['unityImportAnim'] = False
-
-        # Force importing without materials. Users can always change this 
-        # directly in the ModelImporter Inspector panel 
-        options['unityImportMaterials'] = False
 
 class ImageSequenceAsset(GenericAsset):
     @classmethod
