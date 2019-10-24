@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import pprint
+from rpyc import async_
 
 # Install the ftrack logging handlers
 ftrack_connect.config.configure_logging('ftrack_connect_unity')
@@ -92,12 +93,12 @@ class Connector(maincon.Connector):
             Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
 
     @staticmethod
-    def publishAsset(published_file_path, iAObj=None):
+    def publishAsset(publish_args, iAObj=None):
         '''Publish the asset provided by *iAObj*'''
         assetHandler = FTAssetHandlerInstance.instance()
         pubAsset = assetHandler.getAssetClass(iAObj.assetType)
         if pubAsset:
-            publishedComponents, message = pubAsset.publishAsset(published_file_path, iAObj)
+            publishedComponents, message = pubAsset.publishAsset(publish_args, iAObj)
             return publishedComponents, message
         else:
             return [], 'assetType not supported'
@@ -200,7 +201,8 @@ class Connector(maincon.Connector):
             return
 
         # Select the assets
-        GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.SelectObjectsWithGuids(guids)
+        select_objs = async_(GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.SelectObjectsWithGuids)
+        select_objs(guids)
 
     @staticmethod
     def selectObject(applicationObject):
@@ -221,7 +223,8 @@ class Connector(maincon.Connector):
         if not asset_path:
             return
         
-        GetUnityEditor().AssetDatabase.DeleteAsset(asset_path)
+        delete_asset = async_(GetUnityEditor().AssetDatabase.DeleteAsset)
+        delete_asset(asset_path)
 
     @staticmethod
     def getConnectorName():

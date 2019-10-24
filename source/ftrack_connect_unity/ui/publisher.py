@@ -1,15 +1,19 @@
 # :coding: utf-8
 # :copyright: Copyright (c) 2015 ftrack
 
+import json
 import os
 import logging
 import getpass
+from rpyc import async_
 
 from QtExt import QtWidgets, QtCore, QtGui
 
 import ftrack
 import ftrack_api
 from ftrack_api import event
+from ftrack_client import GetUnityEditor
+
 from ftrack_connect import connector as ftrack_connector
 from ftrack_connect.ui.widget import header
 from ftrack_connect.ui.theme import applyTheme
@@ -111,7 +115,7 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         )
 
         self.exportOptionsWidget.ui.publishButton.clicked.connect(
-            self.renderAssetForPublish
+            self.OnPublishClicked
         )
 
         panelComInstance.publishProgressSignal.connect(
@@ -151,25 +155,77 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         '''Set the provided *comment*'''
         self.exportOptionsWidget.setComment(comment)
 
-    def renderAssetForPublish(self):
-        '''Publish the asset'''
+    def OnPublishClicked(self):
+        '''
+        Starts the publish. Publishing involves both the server (Unity) and the
+        client (us). The flow goes like this:
+
+        Init (client)
+        ----
+        1. User clicks the publish button, we are here
+        2. We validate the inputs
+        3. We tell the server to prepare the artifacts 
+           (call to "publish", non-blocking)
+        4. We jog the progress bar to 25%
+
+        At this point, the UI will be responsive again
+
+        Artifact generation (server)
+        ----
+        5. Unity will record what is required which potentially includes
+            * image sequence (.jpg files)
+            * reviewable (.mp4)
+            * package (.unitypackage from the current selection)
+        6. Unity calls back into the client to report that the artifacts are 
+           ready
+
+        Publish (client)
+        ----
+        7. ftrackClientService.exposed_publish gets called with publish args 
+           (information like artifact file paths)
+        8. FtrackPublishDialog.publishAsset is called. From there on it is 
+           a standard publish (dialog->connector->asset->backend)
+        '''
+        # Validate asset name
         assetName = self.exportAssetOptionsWidget.getAssetName()
         if assetName == '':
             self.showWarning('Missing assetName', 'assetName can not be blank')
             return
+        
+        # Validate asset type
         assettype = self.exportAssetOptionsWidget.getAssetType()
         if not assettype:
             self.showWarning('Missing assetType', 'assetType can not be blank')
             return
 
         options = self.exportOptionsWidget.getOptions()
-        if assettype != "img":
-            GetUnityEditor().Ftrack.MovieRecorder.Record()
-        else:
-            GetUnityEditor().Ftrack.ImageSequenceRecorder.Record()
+
+        if options.get('publishPackage') == True:
+            # Validate Unity selection
+            selection = GetUnityEditor().Selection
+            if not selection.assetGUIDs and not selection.gameObjects:
+                self.showWarning('Missing Unity selection', 'You must select at least one asset or Game Object in Unity')
+                return
+
+        # Let the server do the work
+        args = { 
+            'asset_type' : assettype,
+            'options'    : options
+        }
+        
+        # Do an async call (avoids blocking the client/UI)
+        publish = async_(GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.Publish)
+        publish(json.dumps(args))
+
         self.exportOptionsWidget.setProgress(25)
 
-    def publishAsset(self, published_file_path):
+    def publishAsset(self, publish_args):
+        # Check for failure first
+        if publish_args['success'] == False:
+            self.showWarning('Publish failed', publish_args['error_msg'])
+            self.exportOptionsWidget.setProgress(100)
+            return
+
         task = self.exportAssetOptionsWidget.getTask()
         taskId = task.getId()
         shot = self.exportAssetOptionsWidget.getShot()
@@ -231,7 +287,7 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         try:
             logging.info('pubObj' + str(pubObj))
             publishedComponents, message = self.connector.publishAsset(
-                published_file_path, pubObj)
+                publish_args, pubObj)
         except:
             self.exportOptionsWidget.setProgress(100)
             self.showError('Publish failed. Please check the console.')

@@ -4,7 +4,7 @@
 # ftrack
 import ftrack
 import ftrack_api
-from ftrack_client import GetUnityEngine, GetUnityEditor, GetSystem
+from ftrack_client import GetUnityEngine, GetUnityEditor, GetSystem, log_error_in_unity
 import ftrack_connect_unity
 from ftrack_connect.connector import (FTAssetType, FTAssetHandlerInstance,
                                       FTComponent)
@@ -13,6 +13,7 @@ from ftrack_connect.connector import (FTAssetType, FTAssetHandlerInstance,
 import json
 import logging
 import os
+from rpyc import async_
 import shutil
 
 _logger = logging.getLogger('unity_assets')
@@ -35,7 +36,7 @@ class GenericAsset(FTAssetType):
             dst_directory = self._select_directory()
             
         # Import the asset
-        self._import_ftrack_asset(iAObj, dst_directory, iAObj.options) 
+        self._import_ftrack_component(iAObj, dst_directory, iAObj.options) 
  
     def changeVersion(self, iAObj=None, applicationObject=None):
         '''
@@ -51,7 +52,8 @@ class GenericAsset(FTAssetType):
             _logger.error(error_string)
             
             # Also log to the Unity console
-            GetUnityEngine().Debug.LogError(error_string)
+            log_error_in_unity(error_string)
+
             return False
         
         asset_full_path = GetSystem.IO().Path.GetFullPath(asset_path)
@@ -60,21 +62,21 @@ class GenericAsset(FTAssetType):
             _logger.error(error_string)
             
             # Also log to the Unity console
-            GetUnityEngine().Debug.LogError(error_string)
+            log_error_in_unity(error_string)
             return False
         
         dst_directory = os.path.split(asset_full_path)[0]
         
         # Import, without considering settings (preserve settings as they 
         # currently are)
-        self._import_ftrack_asset(iAObj, dst_directory, None)
+        self._import_ftrack_component(iAObj, dst_directory, None)
         return True
 
-    def publishAsset(self, published_file_path, iAObj=None):
+    def publishAsset(self, publish_args, iAObj=None):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        file_paths_dict = published_file_path
+        file_paths_dict = publish_args
         publishedComponents = []
         componentName = "reviewable_asset"
         componentPath = "{0}.{1}".format(
@@ -171,34 +173,51 @@ class GenericAsset(FTAssetType):
             _logger.error(error_string)
             
             # Also log to the Unity console
-            GetUnityEngine().Debug.LogError(error_string)
+            log_error_in_unity(error_string)
             return False
 
-        # Only fbx files are supported
+        # Only fbx and unitypackage files are supported
+        supported_extensions = [
+            '.fbx',
+            '.unitypackage',
+            '.unitypack'
+        ]
         (_, src_filename) = os.path.split(iAObj.filePath)
         (_, src_extension) = os.path.splitext(src_filename)
-        if src_extension.lower() != '.fbx':
+        if src_extension.lower() not in supported_extensions:
             error_string = 'ftrack does not support importing files with extension "{}"'.format(src_extension)
             _logger.error(error_string)
 
             # Also log to the Unity console
-            GetUnityEngine().Debug.LogError(error_string)
+            log_error_in_unity(error_string)
             return False
         
         return True
 
-    def _import_ftrack_asset(self, iAObj, dst_directory, options):
+    def _import_ftrack_component(self, iAObj, dst_directory, options):
         '''
-        Attemps to import the give asset .fbx file
-        Returns the model importer if successful, otherwise returns None
+        Attempts to import the given component file.
         '''
+        # Populate import options, if required
+        if options:
+            self._populate_options(options)
+
+        (_, extension) = os.path.splitext(iAObj.filePath)
+        extension = extension.lower()
+
+        if extension == '.fbx':
+            self._import_fbx_component(iAObj, dst_directory, options)
+        elif extension in ['.unitypackage', '.unitypack']:
+            self._import_unitypackage_component(iAObj, options)
+    
+    def _import_fbx_component(self, iAObj, dst_directory, options):
         # The destination directory must be set
         if not dst_directory:
             error_string = 'ftrack cannot import the asset since the destination directory is missing'
             _logger.error(error_string)
             
             # Also log to the Unity console
-            GetUnityEngine().Debug.LogError(error_string)
+            log_error_in_unity(error_string)
             raise ValueError(error_string)
 
         # Prepare the Unity asset metadata
@@ -213,10 +232,6 @@ class GenericAsset(FTAssetType):
             'ftrack_connect_unity_version': ftrack_connect_unity.__version__
         }
 
-        # Populate import options, if required
-        if options:
-            self._populate_options(options)
-
         # Importing an asset can be a long process. We do not want the client to
         # be blocked, waiting on the server for too long. Connection timeouts
         # could occur, leading to import failures.
@@ -229,7 +244,12 @@ class GenericAsset(FTAssetType):
             'options'      : options,
             'dst_directory': dst_directory
         }
-        GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.ImportAsset(json.dumps(arguments))
+        import_asset = async_(GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.ImportAsset)
+        import_asset(json.dumps(arguments))
+
+    def _import_unitypackage_component(self, iAObj, options):
+        import_package = async_(GetUnityEditor().AssetDatabase.ImportPackage)
+        import_package(iAObj.filePath, False)
 
     def _populate_options(self, options):
         # Generic Assets do not modify the import options
@@ -303,14 +323,17 @@ class ImageSequenceAsset(GenericAsset):
             <row name="Publish Reviewable" accepts="unity" enabled="True">
                 <option type="checkbox" name="publishReviewable" value="False"/>
             </row>
+            <row name="Publish Package From Selection" accepts="unity" enabled="True">
+                <option type="checkbox" name="publishPackage" value="False"/>
+            </row>
         </tab>"""
         return xml
 
-    def publishAsset(self, published_file_path, iAObj=None):
+    def publishAsset(self, publish_args, iAObj=None):
         '''
         Publish the asset defined by the provided *iAObj*.
         '''
-        file_paths_dict = published_file_path
+        file_paths_dict = publish_args
         publishReviewable = iAObj.options.get('publishReviewable')
         publishedComponents = []
         if publishReviewable:
@@ -332,7 +355,7 @@ class ImageSequenceAsset(GenericAsset):
         frameStart = os.environ.get("FS")
         frameEnd = os.environ.get("FE")
 
-        # split published_file_path by <Frame>
+        # split image_path by <Frame>
         file_path_tokens = file_paths_dict.get(
             "image_path").split("<Frame>")
         imgComponentPath = "{0}%04d{1}.{2} [{3}-{4}]".format(
@@ -347,6 +370,19 @@ class ImageSequenceAsset(GenericAsset):
                 path=imgComponentPath
             )
         )
+
+        # Publish the selection package if available
+        publishPackage  = iAObj.options.get('publishPackage')
+        if publishPackage:
+            package_filepath = publish_args['package_filepath']
+            package_filepath = os.path.normpath(package_filepath)
+            publishedComponents.append(
+                FTComponent(
+                    componentname='package',
+                    path=package_filepath
+                )
+            )
+
         return (publishedComponents,
                 'Published ' + iAObj.assetType + ' asset')
 

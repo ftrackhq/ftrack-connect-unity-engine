@@ -21,6 +21,9 @@ from QtExt import QtGui
 # Misc
 import logging
 import os
+from rpyc import async_
+from rpyc.core.protocol import PingError
+import rpyc.core.consts as consts
 import socket
 import sys
 import time
@@ -50,6 +53,15 @@ class GetSystem(object):
     def IO():
         return _service.import_module('System.IO')
 
+# Logs an error in the Unity console. 
+def log_error_in_unity(msg):
+    # The following call is blocking (prone to 30-second lag issue)
+    log_error = async_(GetUnityEngine().Debug.LogError)
+
+    # The following is non-blocking
+    log_error(msg)
+
+
 class ftrackClientService(unity_client.UnityClientService):
     """
     Custom rpyc service that overrides the default Unity client service
@@ -75,7 +87,7 @@ class ftrackClientService(unity_client.UnityClientService):
     @scheduling.exec_on_main_thread
     def exposed_publish(self, publish_args):
         global _publish_dialog
-        _logger.debug('ftrackClientService.exposed_publish: file_path = {}'.format(publish_args))
+        _logger.debug('ftrackClientService.exposed_publish: publish_args) = {}'.format(publish_args))
 
         _publish_dialog.publishAsset(publish_args)
 
@@ -187,6 +199,28 @@ def _connect_to_unity():
         _logger.error(exc_msg)
         raise ftrackClientException(exc_msg)
 
+# There is an existing issue with the Python for Unity package where the 
+# server waits for a client message. If no message comes in, the server
+# will wait for 30 seconds and raise a timeout exception. No data is lost
+# but the result is a 30-second delay. Pinging the server every second will
+# reduce the lag to 1 second
+last_ping_time = time.time()
+def ping_server():
+    global last_ping_time
+    if time.time() - last_ping_time > 1.0:
+        try:
+            if _connection:
+                _connection.async_request(consts.HANDLE_PING, "abcde")
+        except PingError, EOFError:
+            # We pass timeout = None to ping() so  we do not expect an
+            # answer from the server. Swallow this exception
+            #
+            # We also swallow EOFError in case the connection gets momentarily
+            # closed (domain reload)
+            pass
+
+        last_ping_time = time.time()
+
 def main():
     global _service
     _logger.debug('In main')
@@ -210,6 +244,9 @@ def main():
     while (True):
         _qapp.processEvents()
         scheduling.process_jobs()
+
+        ping_server()
+        
         time.sleep(0.01)
 
 if __name__ == '__main__':
