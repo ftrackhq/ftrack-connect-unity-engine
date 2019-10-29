@@ -1,6 +1,7 @@
 *.pyc
 *.project
 *.pydevproject
+*.code-workspace
 
 build/
 .eggs/

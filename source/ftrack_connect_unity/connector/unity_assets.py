@@ -323,7 +323,7 @@ class ImageSequenceAsset(GenericAsset):
             <row name="Publish Reviewable" accepts="unity" enabled="True">
                 <option type="checkbox" name="publishReviewable" value="False"/>
             </row>
-            <row name="Publish Package From Selection" accepts="unity" enabled="True">
+            <row name="Publish Current Scene" accepts="unity" enabled="True">
                 <option type="checkbox" name="publishPackage" value="False"/>
             </row>
         </tab>"""

@@ -198,19 +198,10 @@ class FtrackPublishDialog(QtWidgets.QDialog):
             self.showWarning('Missing assetType', 'assetType can not be blank')
             return
 
-        options = self.exportOptionsWidget.getOptions()
-
-        if options.get('publishPackage') == True:
-            # Validate Unity selection
-            selection = GetUnityEditor().Selection
-            if not selection.assetGUIDs and not selection.gameObjects:
-                self.showWarning('Missing Unity selection', 'You must select at least one asset or Game Object in Unity')
-                return
-
         # Let the server do the work
         args = { 
             'asset_type' : assettype,
-            'options'    : options
+            'options'    : self.exportOptionsWidget.getOptions()
         }
         
         # Do an async call (avoids blocking the client/UI)
