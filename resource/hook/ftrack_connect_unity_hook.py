@@ -23,11 +23,10 @@ if _sources_path not in sys.path:
 
 import ftrack_connect_unity
 
-
+unity_icon = os.environ['FTRACK_SERVER'] + '/application_icons/unity.png' # TODO update ftrack-connect icon mapping.
 
 class LaunchApplicationAction(object):
     identifier = 'ftrack-connect-launch-unity'
-    icon = os.environ['FTRACK_SERVER'] + '/application_icons/unity.png' # TODO update ftrack-connect icon mapping.
 
     def __init__(self, application_store, launcher):
         super(LaunchApplicationAction, self).__init__()
@@ -162,7 +161,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                 all_applications.append( 
                     {
                     'description': 'Launch Unity ({})'.format(unity_location_override),
-                    'icon': self.icon,
+                    'icon': unity_icon,
                     'identifier': 'unity_unknown',
                     'label': 'Unity',
                     'launchArguments': None,
@@ -263,7 +262,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                             applications.append( 
                                 {
                                 'description': 'Launch Unity {} ({})'.format(editor_version, path),
-                                'icon': self.icon,
+                                'icon': unity_icon,
                                 'identifier': 'unity_{}'.format(editor_version),
                                 'label': 'Unity',
                                 'launchArguments': None,
@@ -301,7 +300,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                     applications.append( 
                         {
                         'description': 'Launch Unity {} ({})'.format(version, unity_location),
-                        'icon': self.icon,
+                        'icon': unity_icon,
                         'identifier': 'unity_{}'.format(version),
                         'label': 'Unity',
                         'launchArguments': None,
@@ -323,7 +322,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
             versionExpression = r'(?P<version>\d[\d.a-z]*?)[^\d]*$',
             label='Unity',
             applicationIdentifier='unity_{version}',
-            icon=self.icon,
+            icon=unity_icon,
             variant='{version}'
         )
         
