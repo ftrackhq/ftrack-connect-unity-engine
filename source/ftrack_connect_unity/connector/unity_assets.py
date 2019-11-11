@@ -18,6 +18,9 @@ import shutil
 
 _logger = logging.getLogger('unity_assets')
 
+SUPPORTED_PACKAGES = ['.unitypackage', '.unitypack']
+SUPPORTED_EXTENSIONS = ['.abc', '.fbx']
+
 class GenericAsset(FTAssetType):
     def __init__(self):
         super(GenericAsset, self).__init__()
@@ -176,15 +179,10 @@ class GenericAsset(FTAssetType):
             log_error_in_unity(error_string)
             return False
 
-        # Only fbx and unitypackage files are supported
-        supported_extensions = [
-            '.fbx',
-            '.unitypackage',
-            '.unitypack'
-        ]
         (_, src_filename) = os.path.split(iAObj.filePath)
         (_, src_extension) = os.path.splitext(src_filename)
-        if src_extension.lower() not in supported_extensions:
+        if (src_extension.lower() not in SUPPORTED_EXTENSIONS and 
+            src_extension.lower() not in SUPPORTED_PACKAGES):
             error_string = 'ftrack does not support importing files with extension "{}"'.format(src_extension)
             _logger.error(error_string)
 
@@ -205,12 +203,14 @@ class GenericAsset(FTAssetType):
         (_, extension) = os.path.splitext(iAObj.filePath)
         extension = extension.lower()
 
-        if extension == '.fbx':
-            self._import_fbx_component(iAObj, dst_directory, options)
-        elif extension in ['.unitypackage', '.unitypack']:
+        if extension in SUPPORTED_EXTENSIONS:
+            self._import_unity_asset_component(iAObj, dst_directory, options)
+        elif extension in SUPPORTED_PACKAGES:
             self._import_unitypackage_component(iAObj, options)
+        else:
+            raise ValueError('file type : {} is not supported'.format(extension))
     
-    def _import_fbx_component(self, iAObj, dst_directory, options):
+    def _import_unity_asset_component(self, iAObj, dst_directory, options):
         # The destination directory must be set
         if not dst_directory:
             error_string = 'ftrack cannot import the asset since the destination directory is missing'
