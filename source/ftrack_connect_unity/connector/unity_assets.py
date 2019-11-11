@@ -204,11 +204,13 @@ class GenericAsset(FTAssetType):
         extension = extension.lower()
 
         if extension in SUPPORTED_EXTENSIONS:
-            self._import_unityAsset_component(iAObj, dst_directory, options)
+            self._import_unity_asset_component(iAObj, dst_directory, options)
         elif extension in SUPPORTED_PACKAGES:
             self._import_unitypackage_component(iAObj, options)
+        else:
+            raise ValueError('file type : {} is not supported'.format(extension))
     
-    def _import_unityAsset_component(self, iAObj, dst_directory, options):
+    def _import_unity_asset_component(self, iAObj, dst_directory, options):
         # The destination directory must be set
         if not dst_directory:
             error_string = 'ftrack cannot import the asset since the destination directory is missing'
