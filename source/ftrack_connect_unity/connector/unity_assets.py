@@ -275,9 +275,6 @@ class AnimAsset(GenericAsset):
     def importOptions(cls):
         return '''
         <tab name="Options">
-            <row name="Import Animation" accepts="unity">
-                <option type="checkbox" name="unityImportAnim" value="True"/>
-            </row>
             <row name="Loop Time" accepts="unity">
                 <option type="checkbox" name="unityLoopTime" value="False"/>
             </row>
@@ -288,6 +285,7 @@ class AnimAsset(GenericAsset):
         # Force importing without materials. Users can always change this
         # directly in the ModelImporter Inspector panel
         options['unityImportMaterials'] = False
+        options['unityImportAnim'] = True
 
 class RigAsset(GenericAsset):
     @classmethod
