@@ -2,7 +2,11 @@
 *.project
 *.pydevproject
 *.code-workspace
+.idea/*
+.vscode/*
 
 build/
 .eggs/
 .settings/
+
+docs/build/
