@@ -33,7 +33,7 @@ copyright = u'2019, ftrack'
 with open(
     os.path.join(
         os.path.dirname(__file__), '..', '..' ,'source',
-        'ftrack_connect_unity_engine', '_version.py'
+        'ftrack_connect_unity', '_version.py'
     )
 ) as _version_file:
     _version = re.match(
