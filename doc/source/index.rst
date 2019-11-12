@@ -1,5 +1,5 @@
 ..
-    :copyright: Copyright (c) 2014 ftrack
+    :copyright: Copyright (c) 2019 ftrack
 
 ###########################
 ftrack connect unity engine
@@ -13,7 +13,9 @@ ftrack connect unity engine
    :maxdepth: 1
    :caption: Contents:
 
-   installing.rst
+   build.rst
+   install.rst
+   use.rst
    release/index.rst
 
 

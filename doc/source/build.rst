@@ -1,10 +1,10 @@
 ..
-    :copyright: Copyright (c) 2015 ftrack
+    :copyright: Copyright (c) 2019 ftrack
 
-.. _installing:
+.. _build:
 
-Building from source
-====================
+Build
+=====
 
 You can also build manually from the source for more control. First obtain a
 copy of the source by either downloading the
@@ -18,17 +18,19 @@ site-packages folder::
 
     python setup.py build_plugin
 
-The result plugin will then be available under the build folder.
-Copy or symlink the result plugin folder in your FTRACK_CONNECT_PLUGIN_PATH.
 
+Building documentation
+----------------------
 
-Building documentation from source
-----------------------------------
+To build the documentation from source:
 
-To build the documentation from source::
-
+.. code::
+    
     python setup.py build_sphinx
 
 Then view in your browser::
 
     file:///path/to/ftrack-connect-unity-engine/build/doc/html/index.html
+
+
+
