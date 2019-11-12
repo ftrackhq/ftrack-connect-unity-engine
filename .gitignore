@@ -10,3 +10,4 @@ build/
 .settings/
 
 docs/build/
+doc/source/_build/

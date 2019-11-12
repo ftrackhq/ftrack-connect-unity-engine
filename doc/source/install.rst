@@ -7,8 +7,13 @@
 Install
 =======
 
+In here you'll be able to find the documentation on how to install the integration.
+
+Prerequisites
+-------------
+
 Python
-------
+......
 
 Install `Python 2.7.15 (64 bits) or later <https://www.python.org/downloads/release/python-2716/>`_.
 
@@ -33,14 +38,14 @@ Quit the interpreter by typing
     >>> quit()
 
 Git
----
+...
 
 In order for Unity to pull packages from remote git repositories, the git application should be 
 available. Please refer to your operating system application store to locate and install it.
 
 
-install
-=======
+install integration
+-------------------
 
 Whether you have been downloading the integration or built yourself, 
 copy the uncompressed folder in the **%FTRACK_CONNECT_PLUGIN_PATH%**
