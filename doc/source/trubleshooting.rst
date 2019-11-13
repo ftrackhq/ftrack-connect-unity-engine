@@ -19,15 +19,24 @@ If **%UNITY_LOCATION%** is specified in the environment, it will be the only
 listed editor. Otherwise we discover Unity installations using these 
 locations:
 
-1. The registry (**%HKEY_CURRENT_USER%\Software\Unity Technologies\Installer**).
-   This includes all the versions of Unity that were installed using 
-   the Hub
+.. note::
 
-2. **%APPDATA%\UnityHub\editors.json**
+    The registry 
+    **%HKEY_CURRENT_USER%\Software\Unity Technologies\Installer**.
+
+    This includes all the versions of Unity that were installed using the Hub
+
+.. note::
+
+    **%APPDATA%\UnityHub\editors.json**
+
    This includes all the installations that were added using the 
    "Locate a version" option in the Unity Hub
 
-3. **%APPDATA%\UnityHub\secondaryInstallPath.json**
+.. note::
+
+    **%APPDATA%\UnityHub\secondaryInstallPath.json**
+
    This provides a root path where multiple versions of Unity might 
    exist
    
@@ -58,6 +67,5 @@ Package Manager is not available in Unity
 
 If you cannot see the Package Manager menu item, make sure you installed 
 `Microsoft Visual Studio Community <https://learn.unity.com/tutorial/get-started-with-visual-studio-and-unity>`_
-
 Installing `.NET Core prerequisites <http://go.microsoft.com/fwlink/?LinkID=798306&clcid=0x409>`_
 might help resolve this problem.
