@@ -3,8 +3,13 @@
 
 .. _build:
 
-Build
-=====
+
+Build integration and documentation
+===================================
+
+
+Build Integration
+-----------------
 
 You can also build manually from the source for more control. First obtain a
 copy of the source by either downloading the

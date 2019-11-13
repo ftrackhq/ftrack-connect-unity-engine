@@ -4,8 +4,8 @@
 .. _install:
 
 
-Install
-=======
+Setup and Install 
+=================
 
 In here you'll be able to find the documentation on how to install the integration.
 
@@ -40,7 +40,7 @@ Quit the interpreter by typing
 Git
 ...
 
-In order for Unity to pull packages from remote git repositories, the git application should be 
+In order for Unity to pull packages from remote git repositories, the `git application <https://git-scm.com/download/win>`_ should be 
 available. Please refer to your operating system application store to locate and install it.
 
 
