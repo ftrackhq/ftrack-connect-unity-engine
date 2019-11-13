@@ -16,6 +16,7 @@ ftrack connect unity engine
    build.rst
    install.rst
    use.rst
+   trubleshooting.rst
    release/index.rst
 
 
