@@ -7,6 +7,14 @@
 Trubleshooting
 ==============
 
+Known issues and Limitations
+----------------------------
+
+1) The ftrack plug-in for Unity is currently supported on Windows platforms.
+
+2) Supported versions of Unity: **2019.3** Release
+
+
 Locating Unity installations
 ----------------------------
 

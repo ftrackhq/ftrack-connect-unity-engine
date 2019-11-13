@@ -5,6 +5,9 @@
 ftrack connect unity engine
 ###########################
 
+Welcome to ftrack connect unity engine documentation.
+Please ensure you read through before installing it.
+
 .. note::
 
     User documentation can be found at `help.ftrack.com <https://help.ftrack.com/connect/integrations/ftrack-connect-unity-engine>`_
