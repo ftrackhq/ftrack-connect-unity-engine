@@ -7,8 +7,9 @@
 Release Notes
 *************
 
-.. release :: Upcoming
+.. release :: 1.0.0
+    :date: 2020-01-22
 
     .. change:: New
 
-        first stable release.
+        First stable release.
