@@ -51,3 +51,15 @@ Whether you have been downloading the integration or built yourself,
 copy the uncompressed folder in the **%FTRACK_CONNECT_PLUGIN_PATH%**
 
 You can find more information on how to locate it in the `ftrack help page <https://help.ftrack.com/connect/getting-started-with-connect/installing-and-using-connect>`_
+
+
+known limitations
+-----------------
+
+**publishing**
+
+
+Due to the limitation of the the current system, publishers for other assets types (eg: geometry, rig etc...)
+will be shown on asset level, but won't be working.
+
+Is Currently possible to publish only image_sequence asset (see documentation for details) on shot level.
