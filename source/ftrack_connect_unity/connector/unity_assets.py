@@ -381,9 +381,37 @@ class ImageSequenceAsset(GenericAsset):
                 )
             )
 
+            # Track the assets being published
+            dependencies = publish_args['package_dependencies']
+            dependenciesVersion = []
+            for path in dependencies:
+                dependencyAssetId = self._get_asset_version_id(path)
+                if dependencyAssetId:
+                    dependencyVersion = ftrack.AssetVersion(dependencyAssetId)
+                    dependenciesVersion.append(dependencyVersion)
+
+            currentVersion = ftrack.AssetVersion(iAObj.assetVersionId)
+            currentVersion.addUsesVersions(versions=dependenciesVersion)
+
         return (publishedComponents,
                 'Published ' + iAObj.assetType + ' asset')
+    
+    def _get_asset_version_id(asset_path):
+        # Get the importer for that asset
+        asset_importer = GetUnityEditor().AssetImporter.GetAtPath(asset_path)
+        
+        # Get the metadata
+        try:
+            json_data = json.loads(asset_importer.userData)
+        except:
+            # Invalid or no user data.
+            return None
 
+        # Make sure this metadata is for ftrack by looking for this key
+        if json_data.get('ftrack_connect_unity_version'):
+            return json_data.get('assetVersionId')
+        
+        return None
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()
