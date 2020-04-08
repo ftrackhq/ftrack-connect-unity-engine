@@ -396,7 +396,7 @@ class ImageSequenceAsset(GenericAsset):
         return (publishedComponents,
                 'Published ' + iAObj.assetType + ' asset')
     
-    def _get_asset_version_id(asset_path):
+    def _get_asset_version_id(self, asset_path):
         # Get the importer for that asset
         asset_importer = GetUnityEditor().AssetImporter.GetAtPath(asset_path)
         
