@@ -16,7 +16,6 @@ import os
 from rpyc import async_
 import shutil
 
-_logger = logging.getLogger('unity_assets')
 
 SUPPORTED_PACKAGES = ['.unitypackage', '.unitypack']
 SUPPORTED_EXTENSIONS = ['.abc', '.fbx']
@@ -24,9 +23,12 @@ SUPPORTED_EXTENSIONS = ['.abc', '.fbx']
 class GenericAsset(FTAssetType):
     def __init__(self):
         super(GenericAsset, self).__init__()
+        self.logger = logging.getLogger(
+            __name__ + '.' + self.__class__.__name__
+        )
 
     def importAsset(self, iAObj=None):
-        _logger.debug('In GenericAsset.importAsset')
+        self.logger.debug('In GenericAsset.importAsset')
 
         if not self._validate_ftrack_asset(iAObj):
             raise Exception('Invalid asset. See console for details')
@@ -52,7 +54,7 @@ class GenericAsset(FTAssetType):
         asset_path = asset_path = GetUnityEditor().AssetDatabase.GUIDToAssetPath(applicationObject)
         if not asset_path:
             error_string = 'Cannot find a related asset path in the Asset Database'
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -62,7 +64,7 @@ class GenericAsset(FTAssetType):
         asset_full_path = GetSystem.IO().Path.GetFullPath(asset_path)
         if not asset_full_path:
             error_string = 'Cannot determine the full path for {}'.format(asset_path)
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -173,7 +175,7 @@ class GenericAsset(FTAssetType):
         # Validate the file
         if not os.path.exists(iAObj.filePath):
             error_string = 'ftrack cannot import file "{}" because it does not exist'.format(iAObj.filePath)
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -184,7 +186,7 @@ class GenericAsset(FTAssetType):
         if (src_extension.lower() not in SUPPORTED_EXTENSIONS and 
             src_extension.lower() not in SUPPORTED_PACKAGES):
             error_string = 'ftrack does not support importing files with extension "{}"'.format(src_extension)
-            _logger.error(error_string)
+            self.logger.error(error_string)
 
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -214,7 +216,7 @@ class GenericAsset(FTAssetType):
         # The destination directory must be set
         if not dst_directory:
             error_string = 'ftrack cannot import the asset since the destination directory is missing'
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)

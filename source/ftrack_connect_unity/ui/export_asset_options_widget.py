@@ -11,7 +11,7 @@ import ftrack
 from ftrack_connect.connector import FTAssetHandlerInstance
 from ftrack_connect_unity.connector.unity_connector import Connector
 
-log = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class Ui_ExportAssetOptions(object):
@@ -181,7 +181,7 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
             try:
                 assetType = ftrack.AssetType(assetTypeStr)
             except:
-                log.warning(
+                logger.warning(
                     '{0} not available in ftrack'.format(assetTypeStr)
                 )
                 continue

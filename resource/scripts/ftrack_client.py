@@ -33,10 +33,12 @@ import traceback
 _connection = None
 _connector = Connector()
 _dialogs = []
-_logger = logging.getLogger('ftrack_client')
 _publish_dialog = None
 _qapp  = None
 _service = None
+
+logger = logging.getLogger(__name__)
+
 
 """
 C# API access
@@ -87,14 +89,14 @@ class ftrackClientService(unity_client.UnityClientService):
     @scheduling.exec_on_main_thread
     def exposed_publish(self, publish_args):
         global _publish_dialog
-        _logger.debug('ftrackClientService.exposed_publish: publish_args) = {}'.format(publish_args))
+        logger.debug('ftrackClientService.exposed_publish: publish_args) = {}'.format(publish_args))
 
         _publish_dialog.publishAsset(publish_args)
 
     @scheduling.exec_on_main_thread
     def exposed_show_dialog(self, dialog_name):
         try:
-            _logger.debug('ftrackClientService.exposed_show_dialog: dialog_name = {}'.format(dialog_name))
+            logger.debug('ftrackClientService.exposed_show_dialog: dialog_name = {}'.format(dialog_name))
 
             ftrack_dialog = None
             if dialog_name == 'Info':
@@ -121,7 +123,7 @@ class ftrackClientService(unity_client.UnityClientService):
                 _publish_dialog = ftrack_dialog
             else:
                 error_string = 'Invalid dialog name: "{}"'.format(dialog_name) 
-                _logger.error(error_string)
+                logger.error(error_string)
                 
                 # Also log in the console
                 GetUnityEngine().Debug.LogError(error_string)
@@ -134,7 +136,7 @@ class ftrackClientService(unity_client.UnityClientService):
                 _dialogs.append(ftrack_dialog)
     
         except Exception as e:
-            _logger.exception('Got an exception while trying to show the "{}" ftrack dialog'.format(dialog_name))
+            logger.exception('Got an exception while trying to show the "{}" ftrack dialog'.format(dialog_name))
 
 class ftrackClientException(Exception):
     pass
@@ -151,7 +153,7 @@ def _sync_recorder_values():
     except Exception:
         fps = 24
     
-    _logger.debug('Setting Unity Recorder values:'
+    logger.debug('Setting Unity Recorder values:'
         '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(frame_start, frame_end, fps)
     )
 
@@ -161,7 +163,7 @@ def _sync_recorder_values():
     )
 
 def _initialize_ftrack():
-    _logger.debug('Initializing ftrack in the client process')
+    logger.debug('Initializing ftrack in the client process')
 
     # Setup
     ftrack.setup()
@@ -182,21 +184,21 @@ def _connect_to_unity():
         # Give some time to the server to start listening
         time.sleep(2)
         try:
-            _logger.info('Connecting to Unity')
+            logger.info('Connecting to Unity')
             _connection = unity_client.connect(_service)
         except socket.error:
-            _logger.info('Socket error')
+            logger.info('Socket error')
             pass
         except EOFError:
-            _logger.info('Connection lost, exiting')
+            logger.info('Connection lost, exiting')
             sys.exit('Unity has quit or the server closed unexpectedly')
         else:
-            _logger.info('Connected')
+            logger.info('Connected')
             break
 
     if not _connection:
         exc_msg = 'Could not connect to Unity'
-        _logger.error(exc_msg)
+        logger.error(exc_msg)
         raise ftrackClientException(exc_msg)
 
 # There is an existing issue with the Python for Unity package where the 
@@ -223,7 +225,7 @@ def ping_server():
 
 def main():
     global _service
-    _logger.debug('In main')
+    logger.debug('In main')
 
     # Instantiate the service object
     _service = ftrackClientService()
