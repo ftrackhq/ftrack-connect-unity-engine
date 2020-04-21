@@ -31,7 +31,7 @@ class LaunchApplicationAction(object):
     def __init__(self, application_store, launcher):
         super(LaunchApplicationAction, self).__init__()
 
-        self.logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.logger = logging.getLogger('ftrack_connect_unity')
         self.application_store = application_store
         self.launcher = launcher
 

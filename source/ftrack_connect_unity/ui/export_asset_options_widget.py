@@ -11,7 +11,7 @@ import ftrack
 from ftrack_connect.connector import FTAssetHandlerInstance
 from ftrack_connect_unity.connector.unity_connector import Connector
 
-log = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class Ui_ExportAssetOptions(object):
@@ -181,7 +181,7 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
             try:
                 assetType = ftrack.AssetType(assetTypeStr)
             except:
-                log.warning(
+                logger.warning(
                     '{0} not available in ftrack'.format(assetTypeStr)
                 )
                 continue
@@ -239,29 +239,17 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
             assets = sorted(assets, key=lambda a: a.getName().lower())
             self.ui.ListAssetsViewModel.clear()
 
-            # if task is for a shot, then allow new option,
-            # otherwise force user to use an existing asset
-            isShot = Connector.isTaskPartOfShotOrSequence(
-                self.currentTask)
-
-            if isShot:
-                item = QtGui.QStandardItem('New')
-                item.id = ''
-                curAssetType = self.currentAssetType
-                if curAssetType:
-                    itemType = QtGui.QStandardItem(curAssetType)
-                else:
-                    itemType = QtGui.QStandardItem('')
-                self.ui.ListAssetsViewModel.setItem(0, 0, item)
-                self.ui.ListAssetsViewModel.setItem(0, 1, itemType)
-
-            assetsLength = len(assets)
-            self.ui.ListAssetNamesComboBox.setEnabled(
-                False if assetsLength <= 0 and not isShot else True
-                )
+            item = QtGui.QStandardItem('New')
+            item.id = ''
+            curAssetType = self.currentAssetType
+            if curAssetType:
+                itemType = QtGui.QStandardItem(curAssetType)
+            else:
+                itemType = QtGui.QStandardItem('')
+            self.ui.ListAssetsViewModel.setItem(0, 0, item)
+            self.ui.ListAssetsViewModel.setItem(0, 1, itemType)
 
             blankRows = 0
-            jStart = 1 if isShot else 0
             for i in range(0, len(assets)):
                 assetName = assets[i].getName()
                 if assetName != '':
@@ -271,7 +259,7 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
                         assets[i].getType().getShort()
                     )
 
-                    j = i - blankRows + jStart
+                    j = i - blankRows + 1
                     self.ui.ListAssetsViewModel.setItem(j, 0, item)
                     self.ui.ListAssetsViewModel.setItem(j, 1, itemType)
                 else:

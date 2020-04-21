@@ -16,11 +16,10 @@ import os
 import pprint
 from rpyc import async_
 
-# Install the ftrack logging handlers
-ftrack_connect.config.configure_logging('ftrack_connect_unity')
+
 
 # Logging
-_logger = logging.getLogger('unity_connector')
+logger = logging.getLogger(__name__)
 
 def GetUnityEditor():
     """
