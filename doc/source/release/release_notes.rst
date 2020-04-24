@@ -12,4 +12,8 @@ Release Notes
 
     .. change:: New
 
+        Ensure publish on any context.
+
+    .. change:: New
+
         First stable release.
