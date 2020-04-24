@@ -7,8 +7,8 @@
 Release Notes
 *************
 
-.. release :: 1.0.0
-    :date: 2020-01-22
+.. release :: 1.0.0-RC1
+    :date: 2020-04-24
 
     .. change:: New
 
