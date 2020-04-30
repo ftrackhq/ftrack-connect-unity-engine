@@ -89,7 +89,7 @@ class Connector(maincon.Connector):
         if import_asset:
             import_asset.importAsset(iAObj)
         else:
-            Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
+            logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
 
     @staticmethod
     def publishAsset(publish_args, iAObj=None):
@@ -128,7 +128,7 @@ class Connector(maincon.Connector):
             result = change_asset.changeVersion(iAObj, applicationObject)
             return result
         else:
-            Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
+            logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
             return False
 
     @staticmethod

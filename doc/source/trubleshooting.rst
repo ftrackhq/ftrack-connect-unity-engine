@@ -10,9 +10,7 @@ Trubleshooting
 Known issues and Limitations
 ----------------------------
 
-1) The ftrack plug-in for Unity is currently supported on Windows platforms.
-
-2) Supported versions of Unity: **2019.3** Release
+* The ftrack plug-in for Unity is currently supported on Windows platforms.
 
 
 Locating Unity installations
@@ -77,3 +75,12 @@ If you cannot see the Package Manager menu item, make sure you installed
 `Microsoft Visual Studio Community <https://learn.unity.com/tutorial/get-started-with-visual-studio-and-unity>`_
 Installing `.NET Core prerequisites <http://go.microsoft.com/fwlink/?LinkID=798306&clcid=0x409>`_
 might help resolve this problem.
+
+SSL Errors
+----------
+If an SSL error is present during the run of the plugin please ensure OpenSSL for windows is installed and the full path to the libraries
+
+* libeay32.dll
+* sleay32.dll
+
+are added in the %PATH%
