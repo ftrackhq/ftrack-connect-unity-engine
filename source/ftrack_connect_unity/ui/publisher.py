@@ -210,7 +210,6 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         # Do an async call (avoids blocking the client/UI)
         publish = async_(GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.Publish)
         publish(json.dumps(args))
-
         self.exportOptionsWidget.setProgress(25)
 
     def publishAsset(self, publish_args):
