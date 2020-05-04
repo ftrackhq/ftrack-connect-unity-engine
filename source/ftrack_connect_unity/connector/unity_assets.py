@@ -336,11 +336,16 @@ class ImageSequenceAsset(GenericAsset):
         file_paths_dict = publish_args
         publishReviewable = iAObj.options.get('publishReviewable')
         publishedComponents = []
+        
         if publishReviewable:
+
+            
             componentName = "reviewable_asset"
             componentPath = "{0}.{1}".format(
                 file_paths_dict.get("movie_path"),
                 file_paths_dict.get("movie_ext"))
+
+            self.logger.info('publishing reviewable {} {}'.format(componentName, componentPath))
 
             publishedComponents.append(
                 FTComponent(
@@ -364,6 +369,10 @@ class ImageSequenceAsset(GenericAsset):
             file_paths_dict.get("image_ext"),
             frameStart,
             frameEnd)
+
+
+        self.logger.info('publishing image_sequence {} {}'.format(imgComponentName, imgComponentPath))
+
         publishedComponents.append(
             FTComponent(
                 componentname=imgComponentName,
@@ -376,6 +385,9 @@ class ImageSequenceAsset(GenericAsset):
         if publishPackage:
             package_filepath = publish_args['package_filepath']
             package_filepath = os.path.normpath(package_filepath)
+            
+            self.logger.info('publishing package {} {}'.format('package', package_filepath))
+
             publishedComponents.append(
                 FTComponent(
                     componentname='package',
@@ -395,8 +407,7 @@ class ImageSequenceAsset(GenericAsset):
             currentVersion = ftrack.AssetVersion(iAObj.assetVersionId)
             currentVersion.addUsesVersions(versions=dependenciesVersion)
 
-        return (publishedComponents,
-                'Published ' + iAObj.assetType + ' asset')
+        return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
     
     def _get_asset_version_id(self, asset_path):
         # Get the importer for that asset

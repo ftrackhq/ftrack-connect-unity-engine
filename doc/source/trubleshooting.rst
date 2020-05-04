@@ -86,8 +86,14 @@ If an SSL error is present during the run of the plugin please ensure OpenSSL fo
 are added in the %PATH%
 
 
-Publish stuck at 25%
---------------------
+Can publish only image sequence
+--------------------------------
+
 The current integration allows to publish only image_sequence asset types.
 Due to technical limitations we are not able at the moment to disable the publish for the other asset types, 
 but we are actively looking into a solution.
+
+Result Image Sequence frames are vertically flipped
+----------------------------------------------------
+
+In case the image sequence is vertically flipped, change the recording settings for Capture to TargetCamera and set Flip Vertical.
