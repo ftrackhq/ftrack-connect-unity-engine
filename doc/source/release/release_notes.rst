@@ -11,7 +11,7 @@ Release Notes
 
     .. change:: Fix
 
-        Disable unsupported asset types.
+        Disable publish for unsupported asset types.
 
     .. change:: New
 
