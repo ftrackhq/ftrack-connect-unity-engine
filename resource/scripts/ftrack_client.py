@@ -37,7 +37,7 @@ _publish_dialog = None
 _qapp  = None
 _service = None
 
-logger = logging.getLogger('ftrack-connect-unity-engine')
+logger = logging.getLogger('ftrack_connect_unity_engine')
 
 
 """
