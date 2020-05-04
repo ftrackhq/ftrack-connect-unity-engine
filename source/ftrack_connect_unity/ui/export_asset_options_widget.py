@@ -150,6 +150,8 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
     clickedAssetSignal = QtCore.Signal(str)
     clickedAssetTypeSignal = QtCore.Signal(str)
 
+    supported_asset = 'img'
+
     def __init__(self, parent, browseMode='Shot'):
         QtWidgets.QWidget.__init__(self, parent)
         self.ui = Ui_ExportAssetOptions()
@@ -177,12 +179,15 @@ class ExportAssetOptionsWidget(QtWidgets.QWidget):
         assetHandler = FTAssetHandlerInstance.instance()
         self.assetTypesStr = sorted(assetHandler.getAssetTypes())
 
+        # filter out only img
+        self.assetTypesStr = [fmt for fmt in self.assetTypesStr if fmt==self.supported_asset]
+
         for assetTypeStr in self.assetTypesStr:
             try:
                 assetType = ftrack.AssetType(assetTypeStr)
             except:
                 logger.warning(
-                    '{0} not available in ftrack'.format(assetTypeStr)
+                    '{0} not supported in ftrack'.format(assetTypeStr)
                 )
                 continue
             assetTypeItem = QtGui.QStandardItem(assetType.getName())
