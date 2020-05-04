@@ -9,6 +9,10 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: Fix
+
+        Disable unsupported asset types.
+
     .. change:: New
 
         Improve trubleshooting docs.
