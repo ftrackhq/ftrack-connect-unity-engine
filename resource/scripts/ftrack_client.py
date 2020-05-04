@@ -37,7 +37,7 @@ _publish_dialog = None
 _qapp  = None
 _service = None
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('ftrack-connect-unity-engine')
 
 
 """
@@ -75,11 +75,15 @@ class ftrackClientService(unity_client.UnityClientService):
         if invite_retry:
             global _connection
             if _connection:
+                logger.debug('closing connection {}'.format(_connection))
+
                 _connection.close()
                 _connection = None
 
             # Reconnect from the main thread. This will give the server time to
             # finish closing before we reconnect
+            logger.debug('reconnecting')
+
             scheduling.call_on_main_thread(_connect_to_unity, wait_for_result = False)
         else:
             if _qapp:
@@ -103,6 +107,7 @@ class ftrackClientService(unity_client.UnityClientService):
                 from ftrack_connect.ui.widget.info import FtrackInfoDialog
                 ftrack_dialog = FtrackInfoDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('Info')
+        
             elif dialog_name == 'Import asset':
                 from ftrack_connect.ui.widget.import_asset import FtrackImportAssetDialog
                 ftrack_dialog = FtrackImportAssetDialog(connector=_connector)
@@ -111,10 +116,12 @@ class ftrackClientService(unity_client.UnityClientService):
                 # Make the dialog bigger from its hardcoded values
                 ftrack_dialog.setMinimumWidth(800)
                 ftrack_dialog.setMinimumHeight(600)
+
             elif dialog_name == 'Asset manager':
                 from ftrack_connect.ui.widget.asset_manager import FtrackAssetManagerDialog
                 ftrack_dialog = FtrackAssetManagerDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('AssetManager')
+
             elif dialog_name == 'Publish':
                 from ftrack_connect_unity.ui.publisher import FtrackPublishDialog
                 ftrack_dialog = FtrackPublishDialog(connector=_connector)
@@ -128,7 +135,6 @@ class ftrackClientService(unity_client.UnityClientService):
                 # Also log in the console
                 GetUnityEngine().Debug.LogError(error_string)
                 
-
             if ftrack_dialog:
                 ftrack_dialog.show()
 
@@ -136,7 +142,7 @@ class ftrackClientService(unity_client.UnityClientService):
                 _dialogs.append(ftrack_dialog)
     
         except Exception as e:
-            logger.exception('Got an exception while trying to show the "{}" ftrack dialog'.format(dialog_name))
+            logger.exception('Got an exception while trying to show the "{}" ftrack dialog , {}'.format(dialog_name, e))
 
 class ftrackClientException(Exception):
     pass
@@ -186,11 +192,11 @@ def _connect_to_unity():
         try:
             logger.info('Connecting to Unity')
             _connection = unity_client.connect(_service)
-        except socket.error:
-            logger.info('Socket error')
+        except socket.error as error:
+            logger.info('Socket error {}'.format(error))
             pass
-        except EOFError:
-            logger.info('Connection lost, exiting')
+        except EOFError as error:
+            logger.info('Connection lost, exiting: {}'.format(error))
             sys.exit('Unity has quit or the server closed unexpectedly')
         else:
             logger.info('Connected')
