@@ -7,7 +7,7 @@ import logging
 import getpass
 from rpyc import async_
 
-from QtExt import QtWidgets, QtCore, QtGui
+from Qt import QtWidgets, QtCore, QtGui
 
 import ftrack
 import ftrack_api

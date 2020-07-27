@@ -16,7 +16,7 @@ import unity_python.client.unity_client as unity_client
 import unity_python.common.scheduling as scheduling
 
 # PySide
-from QtExt import QtGui
+from Qt import QtWidgets
 
 # Misc
 import logging
@@ -238,7 +238,7 @@ def main():
 
     # Create the application
     global _qapp
-    _qapp = QtGui.QApplication([])
+    _qapp = QtWidgets.QApplication([])
 
     # Initialize scheduling
     scheduling.initialize()

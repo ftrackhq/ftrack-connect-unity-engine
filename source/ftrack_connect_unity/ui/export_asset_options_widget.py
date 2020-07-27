@@ -5,7 +5,7 @@ import os
 import getpass
 import logging
 
-from QtExt import QtCore, QtWidgets, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 
 import ftrack
 from ftrack_connect.connector import FTAssetHandlerInstance

@@ -142,19 +142,19 @@ class GenericAsset(FTAssetType):
         # Always start in the Assets directory        
         assets_path = GetUnityEngine().Application.dataPath
 
-        from QtExt import QtGui
+        from Qt import QtWidgets
         options = [
-            QtGui.QFileDialog.DontResolveSymlinks,
-            QtGui.QFileDialog.DontUseNativeDialog,
-            QtGui.QFileDialog.ShowDirsOnly
+            QtWidgets.QFileDialog.DontResolveSymlinks,
+            QtWidgets.QFileDialog.DontUseNativeDialog,
+            QtWidgets.QFileDialog.ShowDirsOnly
         ]
 
         caption = "Select destination directory"
-        file_mode = QtGui.QFileDialog.Directory
+        file_mode = QtWidgets.QFileDialog.Directory
 
-        dialog = QtGui.QFileDialog(parent=QtGui.QApplication.instance().activeWindow(), caption=caption, directory=assets_path)
-        dialog.setLabelText(QtGui.QFileDialog.Accept, "Select")
-        dialog.setLabelText(QtGui.QFileDialog.Reject, "Cancel")
+        dialog = QtWidgets.QFileDialog(parent=QtWidgets.QApplication.instance().activeWindow(), caption=caption, directory=assets_path)
+        dialog.setLabelText(QtWidgets.QFileDialog.Accept, "Select")
+        dialog.setLabelText(QtWidgets.QFileDialog.Reject, "Cancel")
         dialog.setFileMode(file_mode)
 
         for option in options:
