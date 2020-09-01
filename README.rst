@@ -9,7 +9,7 @@ Documentation
 *************
 
 Installation and setup guides, can be found at
-http://ftrack-connect-unity-engine.rtd.ftrack.com/en/latest/
+https://ftrack-connect-unity-engine.readthedocs.io/en/latest/
 
 User documentation can be found at
 https://help.ftrack.com/connect/integrations/ftrack-connect-unity-engine
