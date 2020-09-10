@@ -10,6 +10,7 @@ QApplication where ftrack lives
 from connector.unity_connector import Connector
 import ftrack
 from ui import unity_menus
+from ftrack_connect_unity.usage import send_event
 
 # Unity
 import unity_python.client.unity_client as unity_client
@@ -39,6 +40,9 @@ _service = None
 
 logger = logging.getLogger('ftrack_connect_unity_engine')
 
+send_event(
+    'USED-FTRACK-CONNECT-UNITY-ENGINE'
+)
 
 """
 C# API access
