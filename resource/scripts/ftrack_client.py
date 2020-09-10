@@ -40,10 +40,6 @@ _service = None
 
 logger = logging.getLogger('ftrack_connect_unity_engine')
 
-send_event(
-    'USED-FTRACK-CONNECT-UNITY-ENGINE'
-)
-
 """
 C# API access
 
@@ -187,6 +183,12 @@ def _initialize_ftrack():
     # Synchronize the recorder to the shot associated
     # with the context (if relevant)
     _sync_recorder_values()
+
+    # Track usage
+    send_event(
+        'USED-FTRACK-CONNECT-UNITY-ENGINE'
+    )
+
 
 def _connect_to_unity():
     global _connection
