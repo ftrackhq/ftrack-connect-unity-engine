@@ -5,7 +5,7 @@
 from distutils.version import LooseVersion
 
 import ftrack
-import ftrack_connect.application
+import ftrack_connector_legacy.application
 
 # misc
 import getpass
@@ -126,7 +126,7 @@ class LaunchApplicationAction(object):
         )
 
 
-class ApplicationStore(ftrack_connect.application.ApplicationStore):
+class ApplicationStore(ftrack_connector_legacy.application.ApplicationStore):
 
     def _discoverApplications(self):
         all_applications = []
@@ -374,7 +374,7 @@ class ApplicationStore(ftrack_connect.application.ApplicationStore):
                 self._discover_from_location(expression, applications)
 
 
-class ApplicationLauncher(ftrack_connect.application.ApplicationLauncher):
+class ApplicationLauncher(ftrack_connector_legacy.application.ApplicationLauncher):
     def __init__(self, application_store):
         super(ApplicationLauncher, self).__init__(application_store)
 
@@ -384,14 +384,14 @@ class ApplicationLauncher(ftrack_connect.application.ApplicationLauncher):
         environment = super(ApplicationLauncher, self)._getApplicationEnvironment(application, context)
         
         # We need the dependencies in sys.path
-        ftrack_connect.application.appendPath(
+        ftrack_connector_legacy.application.appendPath(
            _sources_path,
             'PYTHONPATH',
             environment
         )
         
         # Make sure the plug-in is in sys.path
-        ftrack_connect.application.appendPath(
+        ftrack_connector_legacy.application.appendPath(
             os.path.join(_sources_path, 'ftrack_connect_unity'),
             'PYTHONPATH',
             environment
@@ -418,19 +418,19 @@ class ApplicationLauncher(ftrack_connect.application.ApplicationLauncher):
 
         ftrack_installation_path = os.path.dirname(sys.executable)
 
-        environment = ftrack_connect.application.appendPath(
+        environment = ftrack_connector_legacy.application.appendPath(
             ftrack_installation_path,
             'QT_PLUGIN_PATH',
             environment
         )
 
-        environment = ftrack_connect.application.appendPath(
+        environment = ftrack_connector_legacy.application.appendPath(
             ftrack_installation_path,
             'PYTHONPATH',
             environment
         )
 
-        environment = ftrack_connect.application.appendPath(
+        environment = ftrack_connector_legacy.application.appendPath(
             os.path.join(ftrack_installation_path, "library.zip"),
             'PYTHONPATH',
             environment

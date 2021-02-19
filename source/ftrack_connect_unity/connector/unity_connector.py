@@ -5,9 +5,9 @@
 
 import ftrack
 import ftrack_api
-import ftrack_connect.config
-from ftrack_connect.connector import base as maincon
-from ftrack_connect.connector import FTAssetHandlerInstance
+import ftrack_connector_legacy.config
+from ftrack_connector_legacy.connector import base as maincon
+from ftrack_connector_legacy.connector import FTAssetHandlerInstance
 
 # misc
 import json
@@ -17,7 +17,7 @@ import pprint
 from rpyc import async_
 
 # Install the ftrack logging handlers
-ftrack_connect.config.configure_logging('ftrack_connect_unity')
+ftrack_connector_legacy.config.configure_logging('ftrack_connect_unity')
 
 # Logging
 _logger = logging.getLogger('unity_connector')

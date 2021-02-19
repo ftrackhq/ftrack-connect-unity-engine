@@ -8,7 +8,7 @@ import logging
 from QtExt import QtCore, QtWidgets, QtGui
 
 import ftrack
-from ftrack_connect.connector import FTAssetHandlerInstance
+from ftrack_connector_legacy.connector import FTAssetHandlerInstance
 from ftrack_connect_unity.connector.unity_connector import Connector
 
 log = logging.getLogger(__file__)
