@@ -112,7 +112,6 @@ setup(
         '': 'source'
     },
     setup_requires=[
-        'docutils < 17.0',
         'sphinx >= 1.8.5',
         'sphinx_rtd_theme >= 0.1.6, < 2',
         'lowdown >= 0.1.0, < 1'
@@ -125,8 +124,8 @@ setup(
     },
     install_requires=[
         'appdirs',
-        'ftrack-connector-legacy @ git+https://bitbucket.org/ftrack/ftrack-connector-legacy/get/1.0.1.zip#egg=ftrack-connector-legacy-1.0.1',
-        'qtext @ git+https://bitbucket.org/ftrack/qtext/get/0.2.3.zip#egg=QtExt-0.2.3',
+        'ftrack-connector-legacy @ git+https://bitbucket.org/ftrack/ftrack-connector-legacy/get/1.0.0.zip#egg=ftrack-connector-legacy-1.0.0',
+        'qtext @ git+https://bitbucket.org/ftrack/qtext/get/0.2.2.zip#egg=QtExt-0.2.2',
         'Qt.py == 0.3.4',
         'PySide'
     ],

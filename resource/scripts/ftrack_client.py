@@ -157,7 +157,7 @@ def _sync_recorder_values():
 
     # Sync the values        
     GetUnityEditor().Ftrack.MovieRecorder.ApplySettings(
-        int(frame_start), int(frame_end), fps
+        int(float(frame_start)), int(float(frame_end)), fps
     )
 
 def _initialize_ftrack():
