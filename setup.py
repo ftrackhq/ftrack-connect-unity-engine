@@ -19,11 +19,10 @@ PLUGIN_NAME = 'ftrack-connect-unity-engine-{0}'
 ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 
 SOURCE_PATH = os.path.join(ROOT_PATH, 'source')
-README_PATH = os.path.join(ROOT_PATH, 'README.md')
+README_PATH = os.path.join(ROOT_PATH, 'README.rst')
 BUILD_PATH = os.path.join(ROOT_PATH, 'build')
 RESOURCE_PATH = os.path.join(ROOT_PATH, 'resource')
 SCRIPTS_PATH = os.path.join(RESOURCE_PATH, 'scripts')
-PACKAGES_PATH =  os.path.join(RESOURCE_PATH, 'packages')
 HOOK_PATH = os.path.join(RESOURCE_PATH, 'hook')
 
 STAGING_PATH = os.path.join(BUILD_PATH, PLUGIN_NAME)
@@ -64,12 +63,6 @@ class BuildPlugin(Command):
         shutil.copytree(
             SCRIPTS_PATH,
             os.path.join(STAGING_PATH, 'resource', 'scripts')
-        )
-
-        # Copy Unity packages
-        shutil.copytree(
-            PACKAGES_PATH,
-            os.path.join(STAGING_PATH, 'resource', 'packages')
         )
         
         # Copy readme file

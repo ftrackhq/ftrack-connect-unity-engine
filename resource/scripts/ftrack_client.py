@@ -10,6 +10,7 @@ QApplication where ftrack lives
 from connector.unity_connector import Connector
 import ftrack
 from ui import unity_menus
+from ftrack_connect_unity.usage import send_event
 
 # Unity
 import unity_python.client.unity_client as unity_client
@@ -33,10 +34,11 @@ import traceback
 _connection = None
 _connector = Connector()
 _dialogs = []
-_logger = logging.getLogger('ftrack_client')
 _publish_dialog = None
 _qapp  = None
 _service = None
+
+logger = logging.getLogger('ftrack_connect_unity_engine')
 
 """
 C# API access
@@ -73,11 +75,15 @@ class ftrackClientService(unity_client.UnityClientService):
         if invite_retry:
             global _connection
             if _connection:
+                logger.debug('closing connection {}'.format(_connection))
+
                 _connection.close()
                 _connection = None
 
             # Reconnect from the main thread. This will give the server time to
             # finish closing before we reconnect
+            logger.debug('reconnecting')
+
             scheduling.call_on_main_thread(_connect_to_unity, wait_for_result = False)
         else:
             if _qapp:
@@ -87,20 +93,21 @@ class ftrackClientService(unity_client.UnityClientService):
     @scheduling.exec_on_main_thread
     def exposed_publish(self, publish_args):
         global _publish_dialog
-        _logger.debug('ftrackClientService.exposed_publish: publish_args) = {}'.format(publish_args))
+        logger.debug('ftrackClientService.exposed_publish: publish_args) = {}'.format(publish_args))
 
         _publish_dialog.publishAsset(publish_args)
 
     @scheduling.exec_on_main_thread
     def exposed_show_dialog(self, dialog_name):
         try:
-            _logger.debug('ftrackClientService.exposed_show_dialog: dialog_name = {}'.format(dialog_name))
+            logger.debug('ftrackClientService.exposed_show_dialog: dialog_name = {}'.format(dialog_name))
 
             ftrack_dialog = None
             if dialog_name == 'Info':
                 from ftrack_connector_legacy.ui.widget.info import FtrackInfoDialog
                 ftrack_dialog = FtrackInfoDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('Info')
+        
             elif dialog_name == 'Import asset':
                 from ftrack_connector_legacy.ui.widget.import_asset import FtrackImportAssetDialog
                 ftrack_dialog = FtrackImportAssetDialog(connector=_connector)
@@ -109,10 +116,12 @@ class ftrackClientService(unity_client.UnityClientService):
                 # Make the dialog bigger from its hardcoded values
                 ftrack_dialog.setMinimumWidth(800)
                 ftrack_dialog.setMinimumHeight(600)
+
             elif dialog_name == 'Asset manager':
                 from ftrack_connector_legacy.ui.widget.asset_manager import FtrackAssetManagerDialog
                 ftrack_dialog = FtrackAssetManagerDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('AssetManager')
+
             elif dialog_name == 'Publish':
                 from ftrack_connect_unity.ui.publisher import FtrackPublishDialog
                 ftrack_dialog = FtrackPublishDialog(connector=_connector)
@@ -121,12 +130,11 @@ class ftrackClientService(unity_client.UnityClientService):
                 _publish_dialog = ftrack_dialog
             else:
                 error_string = 'Invalid dialog name: "{}"'.format(dialog_name) 
-                _logger.error(error_string)
+                logger.error(error_string)
                 
                 # Also log in the console
                 GetUnityEngine().Debug.LogError(error_string)
                 
-
             if ftrack_dialog:
                 ftrack_dialog.show()
 
@@ -134,7 +142,7 @@ class ftrackClientService(unity_client.UnityClientService):
                 _dialogs.append(ftrack_dialog)
     
         except Exception as e:
-            _logger.exception('Got an exception while trying to show the "{}" ftrack dialog'.format(dialog_name))
+            logger.exception('Got an exception while trying to show the "{}" ftrack dialog , {}'.format(dialog_name, e))
 
 class ftrackClientException(Exception):
     pass
@@ -151,7 +159,7 @@ def _sync_recorder_values():
     except Exception:
         fps = 24
     
-    _logger.debug('Setting Unity Recorder values:'
+    logger.debug('Setting Unity Recorder values:'
         '\nFrame start: {0}\nFrame end: {1}\nFPS: {2}'.format(frame_start, frame_end, fps)
     )
 
@@ -161,7 +169,7 @@ def _sync_recorder_values():
     )
 
 def _initialize_ftrack():
-    _logger.debug('Initializing ftrack in the client process')
+    logger.debug('Initializing ftrack in the client process')
 
     # Setup
     ftrack.setup()
@@ -176,27 +184,33 @@ def _initialize_ftrack():
     # with the context (if relevant)
     _sync_recorder_values()
 
+    # Track usage
+    send_event(
+        'USED-FTRACK-CONNECT-UNITY-ENGINE'
+    )
+
+
 def _connect_to_unity():
     global _connection
     for i in range(120):
         # Give some time to the server to start listening
         time.sleep(2)
         try:
-            _logger.info('Connecting to Unity')
+            logger.info('Connecting to Unity')
             _connection = unity_client.connect(_service)
-        except socket.error:
-            _logger.info('Socket error')
+        except socket.error as error:
+            logger.info('Socket error {}'.format(error))
             pass
-        except EOFError:
-            _logger.info('Connection lost, exiting')
+        except EOFError as error:
+            logger.info('Connection lost, exiting: {}'.format(error))
             sys.exit('Unity has quit or the server closed unexpectedly')
         else:
-            _logger.info('Connected')
+            logger.info('Connected')
             break
 
     if not _connection:
         exc_msg = 'Could not connect to Unity'
-        _logger.error(exc_msg)
+        logger.error(exc_msg)
         raise ftrackClientException(exc_msg)
 
 # There is an existing issue with the Python for Unity package where the 
@@ -223,7 +237,7 @@ def ping_server():
 
 def main():
     global _service
-    _logger.debug('In main')
+    logger.debug('In main')
 
     # Instantiate the service object
     _service = ftrackClientService()

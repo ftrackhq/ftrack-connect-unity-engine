@@ -16,7 +16,6 @@ import os
 from rpyc import async_
 import shutil
 
-_logger = logging.getLogger('unity_assets')
 
 SUPPORTED_PACKAGES = ['.unitypackage', '.unitypack']
 SUPPORTED_EXTENSIONS = ['.abc', '.fbx']
@@ -24,9 +23,12 @@ SUPPORTED_EXTENSIONS = ['.abc', '.fbx']
 class GenericAsset(FTAssetType):
     def __init__(self):
         super(GenericAsset, self).__init__()
+        self.logger = logging.getLogger(
+            __name__ + '.' + self.__class__.__name__
+        )
 
     def importAsset(self, iAObj=None):
-        _logger.debug('In GenericAsset.importAsset')
+        self.logger.debug('In GenericAsset.importAsset')
 
         if not self._validate_ftrack_asset(iAObj):
             raise Exception('Invalid asset. See console for details')
@@ -52,7 +54,7 @@ class GenericAsset(FTAssetType):
         asset_path = asset_path = GetUnityEditor().AssetDatabase.GUIDToAssetPath(applicationObject)
         if not asset_path:
             error_string = 'Cannot find a related asset path in the Asset Database'
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -62,7 +64,7 @@ class GenericAsset(FTAssetType):
         asset_full_path = GetSystem.IO().Path.GetFullPath(asset_path)
         if not asset_full_path:
             error_string = 'Cannot determine the full path for {}'.format(asset_path)
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -173,7 +175,7 @@ class GenericAsset(FTAssetType):
         # Validate the file
         if not os.path.exists(iAObj.filePath):
             error_string = 'ftrack cannot import file "{}" because it does not exist'.format(iAObj.filePath)
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -184,7 +186,7 @@ class GenericAsset(FTAssetType):
         if (src_extension.lower() not in SUPPORTED_EXTENSIONS and 
             src_extension.lower() not in SUPPORTED_PACKAGES):
             error_string = 'ftrack does not support importing files with extension "{}"'.format(src_extension)
-            _logger.error(error_string)
+            self.logger.error(error_string)
 
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -214,7 +216,7 @@ class GenericAsset(FTAssetType):
         # The destination directory must be set
         if not dst_directory:
             error_string = 'ftrack cannot import the asset since the destination directory is missing'
-            _logger.error(error_string)
+            self.logger.error(error_string)
             
             # Also log to the Unity console
             log_error_in_unity(error_string)
@@ -334,11 +336,16 @@ class ImageSequenceAsset(GenericAsset):
         file_paths_dict = publish_args
         publishReviewable = iAObj.options.get('publishReviewable')
         publishedComponents = []
+        
         if publishReviewable:
+
+            
             componentName = "reviewable_asset"
             componentPath = "{0}.{1}".format(
                 file_paths_dict.get("movie_path"),
                 file_paths_dict.get("movie_ext"))
+
+            self.logger.info('publishing reviewable {} {}'.format(componentName, componentPath))
 
             publishedComponents.append(
                 FTComponent(
@@ -362,6 +369,10 @@ class ImageSequenceAsset(GenericAsset):
             file_paths_dict.get("image_ext"),
             frameStart,
             frameEnd)
+
+
+        self.logger.info('publishing image_sequence {} {}'.format(imgComponentName, imgComponentPath))
+
         publishedComponents.append(
             FTComponent(
                 componentname=imgComponentName,
@@ -374,6 +385,9 @@ class ImageSequenceAsset(GenericAsset):
         if publishPackage:
             package_filepath = publish_args['package_filepath']
             package_filepath = os.path.normpath(package_filepath)
+            
+            self.logger.info('publishing package {} {}'.format('package', package_filepath))
+
             publishedComponents.append(
                 FTComponent(
                     componentname='package',
@@ -381,9 +395,36 @@ class ImageSequenceAsset(GenericAsset):
                 )
             )
 
-        return (publishedComponents,
-                'Published ' + iAObj.assetType + ' asset')
+            # Track the assets being published
+            dependencies = publish_args['package_dependencies']
+            dependenciesVersion = []
+            for path in dependencies:
+                dependencyAssetId = self._get_asset_version_id(path)
+                if dependencyAssetId:
+                    dependencyVersion = ftrack.AssetVersion(dependencyAssetId)
+                    dependenciesVersion.append(dependencyVersion)
 
+            currentVersion = ftrack.AssetVersion(iAObj.assetVersionId)
+            currentVersion.addUsesVersions(versions=dependenciesVersion)
+
+        return publishedComponents, 'Published ' + iAObj.assetType + ' asset'
+    
+    def _get_asset_version_id(self, asset_path):
+        # Get the importer for that asset
+        asset_importer = GetUnityEditor().AssetImporter.GetAtPath(asset_path)
+        
+        # Get the metadata
+        try:
+            json_data = json.loads(asset_importer.userData)
+        except:
+            # Invalid or no user data.
+            return None
+
+        # Make sure this metadata is for ftrack by looking for this key
+        if json_data.get('ftrack_connect_unity_version'):
+            return json_data.get('assetVersionId')
+        
+        return None
 
 def registerAssetTypes():
     assetHandler = FTAssetHandlerInstance.instance()

@@ -35,6 +35,9 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         if not parent:
             self.parent = self.connector.getMainWindow()
 
+        self.logger = logging.getLogger(
+            __name__ + '.' + self.__class__.__name__
+        )
         self.currentEntity = Connector.getCurrentEntity()
 
         super(FtrackPublishDialog, self).__init__(self.parent)
@@ -207,7 +210,6 @@ class FtrackPublishDialog(QtWidgets.QDialog):
         # Do an async call (avoids blocking the client/UI)
         publish = async_(GetUnityEditor().Ftrack.ConnectUnityEngine.ServerSideUtils.Publish)
         publish(json.dumps(args))
-
         self.exportOptionsWidget.setProgress(25)
 
     def publishAsset(self, publish_args):
@@ -276,7 +278,7 @@ class FtrackPublishDialog(QtWidgets.QDialog):
             options=options
         )
         try:
-            logging.info('pubObj' + str(pubObj))
+            self.logger.info('pubObj' + str(pubObj))
             publishedComponents, message = self.connector.publishAsset(
                 publish_args, pubObj)
         except:
@@ -298,7 +300,7 @@ class FtrackPublishDialog(QtWidgets.QDialog):
                         assetVersion.createComponent(
                             name=compName, path=path)
                 except Exception as error:
-                    logging.error(str(error))
+                    self.logger.error(str(error))
             assetVersion.publish()
         else:
             self.exportOptionsWidget.setProgress(100)
