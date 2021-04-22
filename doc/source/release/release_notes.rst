@@ -7,12 +7,16 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 1.1.0-beta-1
     :date: 2021-04-22
 
-    .. change:: new
+    .. change:: Changed
 
         Ported to connect2.
+
+    .. change:: Changed
+
+        Update hook for application launcher.
 
 
 .. release:: 1.0.1
