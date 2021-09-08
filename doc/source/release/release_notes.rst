@@ -11,9 +11,11 @@ Release Notes
     :date: 2021-09-08
 
     .. change:: Changed
+
         Ported to connect2.
 
     .. change:: Changed
+    
         Update hook for application launcher.
 
     .. change:: change
