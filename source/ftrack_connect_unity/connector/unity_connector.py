@@ -5,9 +5,9 @@
 
 import ftrack
 import ftrack_api
-import ftrack_connect.config
-from ftrack_connect.connector import base as maincon
-from ftrack_connect.connector import FTAssetHandlerInstance
+import ftrack_connector_legacy.config
+from ftrack_connector_legacy.connector import base as maincon
+from ftrack_connector_legacy.connector import FTAssetHandlerInstance
 
 # misc
 import json
@@ -16,10 +16,11 @@ import os
 import pprint
 from rpyc import async_
 
-
+# Install the ftrack logging handlers
+ftrack_connector_legacy.config.configure_logging('ftrack_connect_unity')
 
 # Logging
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger('unity_connector')
 
 def GetUnityEditor():
     """
@@ -89,7 +90,7 @@ class Connector(maincon.Connector):
         if import_asset:
             import_asset.importAsset(iAObj)
         else:
-            logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
+            Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
 
     @staticmethod
     def publishAsset(publish_args, iAObj=None):
@@ -128,7 +129,7 @@ class Connector(maincon.Connector):
             result = change_asset.changeVersion(iAObj, applicationObject)
             return result
         else:
-            logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
+            Logger.warning('Asset Type "{}" not supported by the Unity connector'.format(iAObj.assetType))
             return False
 
     @staticmethod

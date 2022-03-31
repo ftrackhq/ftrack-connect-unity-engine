@@ -7,6 +7,28 @@
 Release Notes
 *************
 
+.. release:: 1.1.0
+    :date: 2021-09-08
+
+    .. change:: Changed
+
+        Ported to connect2.
+
+    .. change:: Changed
+    
+        Update hook for application launcher.
+
+    .. change:: change
+        :tags: Setup
+
+        Provide dependency to ftrack-connector-legacy module.
+
+
+.. warning::
+
+    From this version the support for ftrack-connect 1.X is dropped, and
+    only ftrack-conenct 2.0 will be supported up to the integration EOL.
+
 
 .. release:: 1.0.1
     :date: 2020-09-10

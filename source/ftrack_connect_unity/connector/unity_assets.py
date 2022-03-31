@@ -6,7 +6,7 @@ import ftrack
 import ftrack_api
 from ftrack_client import GetUnityEngine, GetUnityEditor, GetSystem, log_error_in_unity
 import ftrack_connect_unity
-from ftrack_connect.connector import (FTAssetType, FTAssetHandlerInstance,
+from ftrack_connector_legacy.connector import (FTAssetType, FTAssetHandlerInstance,
                                       FTComponent)
 
 # misc

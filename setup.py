@@ -6,15 +6,11 @@ import re
 import shutil
 import sys
 
+
 from setuptools.command.test import test as TestCommand
 from setuptools import setup, find_packages, Command
 from pkg_resources import parse_version
-import pip
-
-if parse_version(pip.__version__) < parse_version('19.3.0'):
-    raise ValueError('Pip should be version 19.3.0 or higher')
-
-from pip._internal import main as pip_main
+import subprocess
 
 # Define paths
 
@@ -65,21 +61,18 @@ class BuildPlugin(Command):
         # Copy script files
         shutil.copytree(
             SCRIPTS_PATH,
-            os.path.join(STAGING_PATH, 'resources', 'scripts')
+            os.path.join(STAGING_PATH, 'resource', 'scripts')
         )
-
+        
         # Copy readme file
         shutil.copyfile(README_PATH, os.path.join(STAGING_PATH, 'README.md'))
 
         # Install local dependencies
-        pip_main.main(
-            [
-                'install',
-                '.',
-                '--target',
-                os.path.join(STAGING_PATH, 'dependencies')
-            ]
+        subprocess.check_call(
+            [sys.executable, '-m', 'pip', 'install','.','--target',
+            os.path.join(STAGING_PATH, 'dependencies')]
         )
+
 
         # Generate plugin zip
         shutil.make_archive(
@@ -108,7 +101,7 @@ setup(
         '': 'source'
     },
     setup_requires=[
-        'sphinx >= 1.2.2, < 2',
+        'sphinx >= 1.8.5',
         'sphinx_rtd_theme >= 0.1.6, < 2',
         'lowdown >= 0.1.0, < 1'
     ],
@@ -119,6 +112,11 @@ setup(
         'build_plugin': BuildPlugin,
     },
     install_requires=[
-        'appdirs'
+        'appdirs',
+        'ftrack-connector-legacy @ git+https://bitbucket.org/ftrack/ftrack-connector-legacy/get/1.0.0.zip#egg=ftrack-connector-legacy-1.0.0',
+        'qtext @ git+https://bitbucket.org/ftrack/qtext/get/0.2.2.zip#egg=QtExt-0.2.2',
+        'Qt.py == 0.3.4',
+        'PySide'
     ],
+    python_requires=">=2.7.9, <3"
 )

@@ -104,12 +104,12 @@ class ftrackClientService(unity_client.UnityClientService):
 
             ftrack_dialog = None
             if dialog_name == 'Info':
-                from ftrack_connect.ui.widget.info import FtrackInfoDialog
+                from ftrack_connector_legacy.ui.widget.info import FtrackInfoDialog
                 ftrack_dialog = FtrackInfoDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('Info')
         
             elif dialog_name == 'Import asset':
-                from ftrack_connect.ui.widget.import_asset import FtrackImportAssetDialog
+                from ftrack_connector_legacy.ui.widget.import_asset import FtrackImportAssetDialog
                 ftrack_dialog = FtrackImportAssetDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('ImportAsset')
                 
@@ -118,7 +118,7 @@ class ftrackClientService(unity_client.UnityClientService):
                 ftrack_dialog.setMinimumHeight(600)
 
             elif dialog_name == 'Asset manager':
-                from ftrack_connect.ui.widget.asset_manager import FtrackAssetManagerDialog
+                from ftrack_connector_legacy.ui.widget.asset_manager import FtrackAssetManagerDialog
                 ftrack_dialog = FtrackAssetManagerDialog(connector=_connector)
                 ftrack_dialog.setWindowTitle('AssetManager')
 
@@ -165,7 +165,7 @@ def _sync_recorder_values():
 
     # Sync the values        
     GetUnityEditor().Ftrack.MovieRecorder.ApplySettings(
-        int(frame_start), int(frame_end), fps
+        int(float(frame_start)), int(float(frame_end)), fps
     )
 
 def _initialize_ftrack():
