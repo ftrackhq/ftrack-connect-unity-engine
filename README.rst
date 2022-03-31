@@ -2,6 +2,11 @@
 ftrack connect unity engine
 ###########################
 
+.. warning::
+
+    This integration supports only python 2 and will reach EOL by the end of 2022 and will no be longer supported. 
+    
+
 ftrack integration with Unity.
 
 *************
